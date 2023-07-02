@@ -48,7 +48,8 @@ target_include_directories(EASTL SYSTEM
 )
 
 if (BUILD_SHARED_LIBS)
-    target_compile_definitions(EASTL PUBLIC -DEA_DLL PRIVATE -DEASTL_EXPORTS -DEASTDC_EXPORTS)
+    target_compile_definitions(EASTL PUBLIC -DEA_DLL)
+    target_exports_definitions(EASTL PRIVATE -DEASTL_EXPORTS -DEASTDC_EXPORTS)
 endif ()
 
 # Urho3D:

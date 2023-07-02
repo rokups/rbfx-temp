@@ -42,7 +42,7 @@ else ()
     set(FMT_PUBLIC PUBLIC)
 endif ()
 
-target_link_libraries(fmt ${FMT_PUBLIC} EASTL)
+target_link_mergedlibs(fmt PRIVATE EASTL)
 target_compile_definitions(fmt ${FMT_PUBLIC} FMT_USE_RVALUE_REFERENCES=1 FMT_USE_VARIADIC_TEMPLATES=1)
 target_include_directories(fmt SYSTEM ${FMT_PUBLIC}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -52,9 +52,8 @@ if (BUILD_SHARED_LIBS)
     if (MINGW)
         target_compile_definitions(fmt ${FMT_PUBLIC} -DFMT_HEADER_ONLY)
     else ()
-        target_compile_definitions(fmt ${FMT_PUBLIC} -DFMT_SHARED
-            PRIVATE -DFMT_EXPORT -DEASTL_EXPORTS=1 -DEASTDC_EXPORTS=1
-        )
+        target_compile_definitions(fmt ${FMT_PUBLIC} -DFMT_SHARED)
+        target_exports_definitions(fmt PRIVATE -DFMT_EXPORT)
     endif ()
 endif ()
 

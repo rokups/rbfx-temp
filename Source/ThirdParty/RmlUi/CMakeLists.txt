@@ -40,7 +40,8 @@ if (APPLE)
     # function macro with LuaType::check
     target_compile_definitions(RmlUi PRIVATE -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0)
 endif ()
-target_link_libraries(RmlUi PUBLIC FreeType EASTL)
+target_link_libraries(RmlUi PUBLIC FreeType)
+target_link_mergedlibs(RmlUi PRIVATE EASTL)
 target_include_directories(RmlUi SYSTEM
     INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Include>
     PUBLIC    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Include/RmlUi>
@@ -53,7 +54,7 @@ foreach (ext *.h *.inl)
 endforeach ()
 
 if (BUILD_SHARED_LIBS)
-    target_compile_definitions(RmlUi PRIVATE -DRmlCore_EXPORTS=1 -DRmlDebugger_EXPORTS=1 -DEASTL_EXPORTS -DEASTDC_EXPORTS)
+    target_exports_definitions(RmlUi PRIVATE -DRmlCore_EXPORTS=1 -DRmlDebugger_EXPORTS=1)
 else ()
     target_compile_definitions(RmlUi PUBLIC -DRMLUI_STATIC_LIB=1)
 endif ()

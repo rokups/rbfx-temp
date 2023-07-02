@@ -30,6 +30,11 @@ target_include_directories(enkiTS SYSTEM
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
 
+if (BUILD_SHARED_LIBS)
+    target_compile_definitions(enkiTS PUBLIC ENKITS_DLL)
+    target_exports_definitions(enkiTS PRIVATE ENKITS_BUILD_DLL)
+endif ()
+
 if (NOT URHO3D_MERGE_STATIC_LIBS)
     install(TARGETS enkiTS EXPORT Urho3D ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR_CONFIG})
 endif ()

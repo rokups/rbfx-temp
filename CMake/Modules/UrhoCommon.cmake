@@ -412,3 +412,67 @@ function (install_third_party_libs)
     endif ()
 endfunction ()
 
+# Define an export definition and make note of it for use in target_merge_libraries.
+function(target_exports_definitions TARGET ACCESS)
+    target_compile_definitions(${TARGET} ${ACCESS} ${ARGN})
+    set_target_properties(${TARGET} PROPERTIES __EXPORT_DEF "${ARGN}")
+endfunction()
+
+# Link to the static library, without having dependent targets link to that library.
+function(target_merge_libraries TARGET ACCESS)
+    foreach(LIBRARY ${ARGN})
+        get_target_property(TARGET_TYPE ${LIBRARY} TYPE)
+        if (${TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
+            # Only static libraries are merged into a dll.
+            if (BUILD_SHARED_LIBS)
+                # Merging is only relevant in shared builds.
+                if (NOT URHO3D_MERGE_STATIC_LIBS)
+                    # Link whole libs in case of GCC or Clang.
+                    if (NOT MSVC AND NOT APPLE)
+                        target_link_libraries(Urho3D PRIVATE -Wl,--whole-archive)
+                    endif ()
+                    target_link_libraries(${TARGET} PRIVATE ${LIBRARY})
+                    if (NOT MSVC AND NOT APPLE)
+                        target_link_libraries(${TARGET} PRIVATE -Wl,--no-whole-archive)
+                    endif ()
+                    # Link whole libs in case of MSVC or Apple Clang.
+                    if (UWP OR MSVC)
+                        target_link_options(${TARGET} PRIVATE /WHOLEARCHIVE:${LIBRARY})
+                    elseif (APPLE)
+                        target_link_libraries(${TARGET} PRIVATE -force_load ${LIBRARY})
+                    endif ()
+                endif ()
+                # Export public library interface.
+                get_target_property(INTERFACE_LINK_LIBRARIES ${LIBRARY} INTERFACE_LINK_LIBRARIES)
+                if (INTERFACE_LINK_LIBRARIES)
+                    target_link_libraries(${TARGET} PRIVATE ${INTERFACE_LINK_LIBRARIES})
+                endif ()
+                target_compile_definitions(${TARGET} ${ACCESS} $<TARGET_PROPERTY:${LIBRARY},INTERFACE_COMPILE_DEFINITIONS>)
+                target_compile_options(${TARGET} ${ACCESS} $<TARGET_PROPERTY:${LIBRARY},INTERFACE_COMPILE_OPTIONS>)
+                target_include_directories(${TARGET} ${ACCESS} $<TARGET_PROPERTY:${LIBRARY},INTERFACE_INCLUDE_DIRECTORIES>)
+                # Ensure library interface is properly exported.
+                get_target_property(EXPORT_DEFINITION ${LIBRARY} __EXPORT_DEF)
+                target_compile_definitions(${TARGET} ${ACCESS} ${EXPORT_DEFINITION})
+            else ()
+                if (UWP)
+                    # TODO: Why did we need this?
+                    target_link_options(${TARGET} PRIVATE /WHOLEARCHIVE:${LIBRARY})
+                endif ()
+                # Normal linking.
+                target_link_libraries(${TARGET} ${ACCESS} ${LIBRARY})
+            endif ()
+        else ()
+            # Other libraries are linked without special handling.
+            target_link_libraries(${TARGET} ${ACCESS} ${LIBRARY})
+        endif ()
+    endforeach()
+endfunction()
+
+# Link merged libs to other merged libs.
+function(target_link_mergedlibs TARGET ACCESS)
+    target_link_libraries(${TARGET} ${ACCESS} ${ARGN})
+    foreach(LIBRARY ${ARGN})
+        get_target_property(EXPORT_DEFINITION ${LIBRARY} __EXPORT_DEF)
+        target_compile_definitions(${TARGET} PRIVATE ${EXPORT_DEFINITION})
+    endforeach()
+endfunction()

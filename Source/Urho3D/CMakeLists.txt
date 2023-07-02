@@ -221,82 +221,12 @@ set (PRIVATE_THIRD_PARTY_DEPENDENCIES
     SPIRV-Tools-opt
 )
 
-if (URHO3D_MERGE_STATIC_LIBS)
-    list (APPEND PUBLIC_THIRD_PARTY_DEPENDENCIES Bullet)
-elseif (TARGET Bullet)
-    # This library can not be exported from .dll on windows platforms.
-    if (WEB AND BUILD_SHARED_LIBS)
-        # With this configuration public linking causes some symbols to be multiply defined.
-        target_link_libraries(Urho3D PRIVATE Bullet)
-        target_include_directories(Urho3D PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/Bullet>)
-    else ()
-        target_link_libraries(Urho3D PUBLIC Bullet)
-    endif ()
-endif ()
-
-foreach (dep ${PUBLIC_THIRD_PARTY_DEPENDENCIES})
-    if (TARGET "${dep}")
-        # By linking them as private but inheriting definitions/options/dirs we avoid having
-        # to export third party lib targets in a monolithic dll build.
-        get_target_property(_TARGET_TYPE ${dep} TYPE)
-        if (${_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
-            if (BUILD_SHARED_LIBS)
-                if (MSVC)
-                    set_property(TARGET Urho3D APPEND_STRING PROPERTY LINK_FLAGS " /WHOLEARCHIVE:${dep}")
-                elseif (APPLE)
-                    set_property(TARGET Urho3D APPEND PROPERTY LINK_LIBRARIES -force_load ${dep})
-                endif ()
-            elseif (UWP)
-                set_property(TARGET Urho3D APPEND_STRING PROPERTY LINK_FLAGS " /WHOLEARCHIVE:${dep}")
-            endif ()
-        endif ()
-        get_target_property(VALUE ${dep} INTERFACE_COMPILE_DEFINITIONS)
-        if (VALUE)
-            target_compile_definitions(Urho3D PUBLIC ${VALUE})
-        endif ()
-        get_target_property(VALUE ${dep} INTERFACE_COMPILE_OPTIONS)
-        if (VALUE)
-            target_compile_options(Urho3D PUBLIC ${VALUE})
-        endif ()
-        get_target_property(VALUE ${dep} INTERFACE_INCLUDE_DIRECTORIES)
-        if (VALUE)
-            target_include_directories(Urho3D PUBLIC ${VALUE})
-        endif ()
-        get_target_property(VALUE ${dep} INTERFACE_LINK_LIBRARIES)
-        if (VALUE)
-            foreach (dep_lib ${VALUE})
-                string(FIND "${dep_lib}" "$" DOLLAR_OFFSET)
-                if (DOLLAR_OFFSET LESS 0 AND NOT TARGET "${dep_lib}")
-                    target_link_libraries (Urho3D PUBLIC "${dep_lib}")
-                endif ()
-            endforeach ()
-        endif ()
-        if (BUILD_SHARED_LIBS OR NOT URHO3D_MERGE_STATIC_LIBS)
-            if (BUILD_SHARED_LIBS AND NOT MSVC AND NOT APPLE)
-                target_link_libraries(Urho3D PRIVATE -Wl,--whole-archive)
-            endif ()
-            target_link_libraries(Urho3D PRIVATE ${dep})
-            if (BUILD_SHARED_LIBS AND NOT MSVC AND NOT APPLE)
-                target_link_libraries(Urho3D PRIVATE -Wl,--no-whole-archive)
-            endif ()
-        else ()
-            if (${_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
-                list (APPEND DEPENDENCY_TARGET_FILES $<TARGET_FILE:${dep}>)
-            endif ()
-        endif ()
-    endif ()
-endforeach()
-
-foreach (dep ${PRIVATE_THIRD_PARTY_DEPENDENCIES})
-    if (TARGET "${dep}")
-        target_link_libraries(Urho3D PRIVATE ${dep})
-
-        get_target_property(_TARGET_TYPE ${dep} TYPE)
-        if (URHO3D_MERGE_STATIC_LIBS AND NOT BUILD_SHARED_LIBS AND ${_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
-            list (APPEND DEPENDENCY_TARGET_FILES $<TARGET_FILE:${dep}>)
-        endif ()
-    endif ()
-endforeach ()
+# These libraries are exported from Urho3D.dll
+target_merge_libraries(Urho3D PUBLIC ${PUBLIC_THIRD_PARTY_DEPENDENCIES})
+# These libraries are not exported from Urho3D.dll
+target_link_libraries(Urho3D PRIVATE ${PRIVATE_THIRD_PARTY_DEPENDENCIES})
+# These libraries can not be exported from Urho3D.dll
+target_link_libraries(Urho3D PUBLIC Bullet)
 
 if (URHO3D_SSE)
     if (MSVC)
@@ -340,6 +270,9 @@ endif ()
 
 if (URHO3D_PROFILING)
     target_link_libraries(Urho3D PUBLIC Tracy)
+    if (BUILD_SHARED_LIBS)
+        target_compile_definitions(Urho3D PRIVATE -DTRACY_EXPORTS=1)
+    endif ()
 endif ()
 
 # Graphics
@@ -383,12 +316,7 @@ if (WEB)
 endif ()
 
 if (BUILD_SHARED_LIBS)
-    target_compile_definitions(Urho3D
-        PRIVATE -DURHO3D_EXPORTS=1 -DAL_EXPORTS=1 -DBOX2D_EXPORTS=1 -DCIVETWEB_DLL_EXPORTS=1 -DEASTL_EXPORTS=1
-            -DEASTDC_EXPORTS=1 -DURHO3D_EXPORTS=1 -DFMT_EXPORT=1 -DGLEW_BUILD=1 -DIMGUI_EXPORTS=1
-            -DLZ4_DLL_EXPORT=1 -DNFD_EXPORTS=1 -DPUGIXML_EXPORTS=1 -DSDL_EXPORTS=1 -DTRACY_EXPORTS=1 -DRmlCore_EXPORTS=1
-            -DRmlDebugger_EXPORTS=1 -DGLSLANG_EXPORTING=1
-    )
+    target_compile_definitions(Urho3D PRIVATE -DURHO3D_EXPORTS=1)
 else ()
     target_compile_definitions (Urho3D PUBLIC -DURHO3D_STATIC)
 endif ()
@@ -482,6 +410,25 @@ if (MINI_URHO)
 endif ()
 
 if (URHO3D_MERGE_STATIC_LIBS)
+    get_target_property(URHO3D_LINK_LIBRARIES Urho3D LINK_LIBRARIES)
+    foreach (LIBRARY ${URHO3D_LINK_LIBRARIES})
+        # Merge only local targets.
+        if (NOT TARGET ${LIBRARY})
+            continue ()
+        endif ()
+        get_target_property(LIBRARY_IMPORTED ${LIBRARY} IMPORTED)
+        if (LIBRARY_IMPORTED)
+            continue ()
+        endif ()
+        # Merge only static libraries
+        get_target_property(TARGET_TYPE ${dep} TYPE)
+        if (${TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
+            list(APPEND DEPENDENCY_TARGET_FILES ${LIBRARY})
+        endif ()
+    endforeach ()
+    unset(LIBRARY_IMPORTED)
+    unset(TARGET_TYPE)
+
     # Merge static libraries of third party dependencies to final engine static library
     add_custom_command (TARGET Urho3D PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove -f $<TARGET_FILE:Urho3D>)
     if (MSVC)

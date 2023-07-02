@@ -39,7 +39,8 @@ else ()
 endif ()
 
 add_library (ImGui STATIC ${SOURCE_FILES})
-target_link_libraries(ImGui PUBLIC SDL2-static STB FreeType EASTL)
+target_link_libraries(ImGui PUBLIC FreeType)
+target_link_mergedlibs(ImGui PRIVATE SDL2-static STB EASTL)
 target_compile_definitions(ImGui PRIVATE -DSDL_EXPORTS) # A workaround for MinGW to not try to import SDL APIs from a static library that exports them.
 if (URHO3D_OPENGL)
     if (MOBILE)
@@ -69,7 +70,8 @@ target_include_directories(ImGui SYSTEM
 )
 
 if (BUILD_SHARED_LIBS)
-    target_compile_definitions(ImGui PRIVATE -DIMGUI_EXPORTS -DEASTL_EXPORTS -DEASTDC_EXPORTS PUBLIC -DIMGUI_IMPORTS -DGLEW_BUILD=1)
+    target_compile_definitions(ImGui PUBLIC -DIMGUI_IMPORTS)
+    target_exports_definitions(ImGui PRIVATE -DIMGUI_EXPORTS)
 endif ()
 
 install (DIRECTORY include/ DESTINATION ${DEST_THIRDPARTY_HEADERS_DIR}/ FILES_MATCHING PATTERN *.h)

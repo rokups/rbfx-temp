@@ -23,7 +23,8 @@
 file (GLOB_RECURSE SOURCE_FILES *.cpp *.hpp)
 add_library (PugiXml STATIC ${SOURCE_FILES})
 if (BUILD_SHARED_LIBS)
-    target_compile_definitions(PugiXml PRIVATE -DPUGIXML_EXPORTS PUBLIC -DPUGIXML_IMPORTS)
+    target_compile_definitions(PugiXml PUBLIC -DPUGIXML_IMPORTS)
+    target_exports_definitions(PugiXml PRIVATE -DPUGIXML_EXPORTS)
 endif ()
 target_include_directories(PugiXml
     INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
