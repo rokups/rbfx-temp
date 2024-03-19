@@ -525,6 +525,9 @@ public:
 %ignore Urho3D::Component::id_;
 %ignore Urho3D::Component::enabled_;
 
+%template(NodeMap) eastl::unordered_map<unsigned, Urho3D::Node*>;
+%template(ComponentMapt) eastl::unordered_map<unsigned, Urho3D::Component*>;
+
 %include "generated/Urho3D/_pre_scene.i"
 %include "Urho3D/Scene/AnimationDefs.h"
 %include "Urho3D/Scene/ValueAnimationInfo.h"
