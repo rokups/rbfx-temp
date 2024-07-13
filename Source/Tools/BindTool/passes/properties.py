@@ -41,7 +41,6 @@ class DefinePropertiesPass(AstPass):
         # Gather restricted names
         restricted_names = set()
         restricted_methods = set()
-        restricted_methods.add('GetType')     # Clashes with C#'s System.Object.GetType.
 
         for n in node.children:
             # Do not consider protected members as restricted. This is not strictly correct, because
