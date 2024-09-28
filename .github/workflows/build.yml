@@ -855,7 +855,9 @@ jobs:
 
       - name: Build
         shell: bash
-        run: ${{ env.ci_build_script }} build
+        run: |
+          ${{ env.ci_build_script }} build
+          tree ${{ github.workspace }}/source-code/android/
 
       - uses: actions/upload-artifact@v3
         if: env.ci_artifacts == 'true'
