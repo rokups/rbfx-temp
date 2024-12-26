@@ -13,10 +13,12 @@ env:
   URHO3D_TESTING: ON
   URHO3D_PROFILING_FALLBACK: ON
   DOTNET_VERSION: '8.0'
-  CMAKE_VERSION: 3.21.x
+  CMAKE_VERSION: 3.31.x
+  # cache
+  cache_prefix: ${{ secrets.CACHE_VERSION }}-master
+  CACHE_DIR: ${{ github.workspace }}/.cache
   # ccache configuration
-  ccache_prefix: ${{ secrets.CACHE_VERSION }}-master
-  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
   CCACHE_COMPRESS: true
   CCACHE_COMPRESSLEVEL: 9
   CCACHE_DEPEND: true
@@ -25,6 +27,8 @@ env:
   CCACHE_NOHASHDIR: true
   CCACHE_MAXSIZE: 5G
   CCACHE_LIMIT_MULTIPLE: 0.6
+  # CPM
+  CPM_BINARY_CACHE_DIR: ${{ github.workspace }}/.cache/cpm
   # paths
   ci_workspace_dir: ${{ github.workspace }}
   ci_source_dir: ${{ github.workspace }}/source-code
@@ -100,9 +104,9 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ github.sha }}
-          restore-keys: ${{ env.ccache_prefix }}-${{ github.job }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: ${{ env.cache_prefix }}-${{ github.job }}
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -149,9 +153,9 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ github.sha }}
-          restore-keys: ${{ env.ccache_prefix }}-${{ github.job }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: ${{ env.cache_prefix }}-${{ github.job }}
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -205,9 +209,9 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ github.sha }}
-          restore-keys: ${{ env.ccache_prefix }}-${{ github.job }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: ${{ env.cache_prefix }}-${{ github.job }}
 
       - name: Setup cmake
         uses: jwlawson/actions-setup-cmake@v2
@@ -301,10 +305,10 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
+            ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
@@ -442,10 +446,10 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
+            ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
 
       - uses: actions/download-artifact@v3
         with:
@@ -551,10 +555,10 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
+            ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
@@ -703,10 +707,10 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
+            ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_arch }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ matrix.ci_compiler }}
 
       - name: Bash
         shell: bash
@@ -823,10 +827,10 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_build_type }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_build_type }}
+            ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_build_type }}
 
       - uses: actions/download-artifact@v3
         with:
@@ -899,10 +903,10 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
+            ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
 
       - uses: actions/download-artifact@v3
         with:
@@ -990,10 +994,10 @@ jobs:
       - name: Build Cache
         uses: actions/cache@v4
         with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
+          path: ${{ env.CACHE_DIR }}
+          key: ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}-${{ github.sha }}
           restore-keys: |
-            ${{ env.ccache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
+            ${{ env.cache_prefix }}-${{ github.job }}-${{ matrix.ci_lib_type }}-${{ matrix.ci_build_type }}
 
       - uses: actions/download-artifact@v3
         with:
