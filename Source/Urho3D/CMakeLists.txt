@@ -171,6 +171,7 @@ if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/librevision.h)
 endif ()
 
 find_package(Threads REQUIRED)
+find_package(OpenGL)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(SDL2 REQUIRED)
