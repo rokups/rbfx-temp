@@ -179,7 +179,7 @@ function(CPMAddPackageCached)
             endif ()
 
             # Forward arguments that define build environment to the dependency generator.
-            foreach(arg BUILD_SHARED_LIBS CMAKE_TOOLCHAIN_FILE CMAKE_GENERATOR CMAKE_GENERATOR_PLATFORM ${CPM_BINARY_CACHE_USE_VARS})
+            foreach(arg BUILD_SHARED_LIBS CMAKE_TOOLCHAIN_FILE CMAKE_GENERATOR CMAKE_GENERATOR_PLATFORM CPM_BINARY_CACHE_DIR CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_USE_VARS})
                 if (DEFINED ${arg})
                     list(APPEND extra_configure_args -D${arg}=${${arg}})
                 endif()
@@ -189,7 +189,6 @@ function(CPMAddPackageCached)
             string(REGEX REPLACE "([a-zA-Z0-9_]+) +([^;]+)" "-D\\1=\\2" CPM_ARGS_OPTIONS "${CPM_ARGS_OPTIONS}")
             cpm_cache_exec_process(
                 "Generating ${CPM_ARGS_NAME} build directory:"
-                ${CMAKE_COMMAND} -E env CPM_BINARY_CACHE_DIR=${CPM_BINARY_CACHE_DIR} CPM_SOURCE_CACHE=${CPM_SOURCE_CACHE} --
                 ${CMAKE_COMMAND} -S ${${CPM_ARGS_NAME}_SOURCE_DIR} -B ${${CPM_ARGS_NAME}_BINARY_DIR}
                                 -DCMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/pkg_prefix -DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/pkg_prefix
                                 ${extra_configure_args} ${CPM_ARGS_OPTIONS}
