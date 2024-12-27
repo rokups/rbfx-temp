@@ -172,7 +172,7 @@ else()
     add_executable(${PROJECT_NAME} ${PROFILER_FILES} ${COMMON_FILES} ${SERVER_FILES})
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE TracyServer TracyImGui)
+target_link_libraries(${PROJECT_NAME} PRIVATE TracyServer TracyImGui STB)
 
 if(NOT EMSCRIPTEN)
     target_link_libraries(${PROJECT_NAME} PRIVATE TracyNfd)
