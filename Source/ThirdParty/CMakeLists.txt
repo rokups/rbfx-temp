@@ -20,15 +20,6 @@
 # THE SOFTWARE.
 #
 
-# Configure cache directories
-if (NOT DEFINED ENV{CPM_BINARY_CACHE_DIR})
-    set(CPM_BINARY_CACHE_DIR ${CMAKE_BINARY_DIR}/../rbfx-deps-cache)
-    get_filename_component(CPM_BINARY_CACHE_DIR ${CPM_BINARY_CACHE_DIR} REALPATH)
-endif()
-if (NOT DEFINED ENV{CPM_SOURCE_CACHE})
-    set(CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_DIR}/src)
-    get_filename_component(CPM_SOURCE_CACHE ${CPM_SOURCE_CACHE} REALPATH)
-endif()
 include(${rbfx_SOURCE_DIR}/CMake/Modules/CPM.Cached.cmake)
 
 # Third party warnings are irrelevant to us.
