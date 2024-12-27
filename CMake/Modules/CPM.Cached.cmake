@@ -26,6 +26,10 @@
 # - `CMAKE_GENERATOR_PLATFORM`: The generator platform.
 #
 
+message(STATUS "ENV-CPM_BINARY_CACHE_DISABLED=$ENV{CPM_BINARY_CACHE_DISABLED}")
+message(STATUS "ENV-CPM_BINARY_CACHE_DIR=$ENV{CPM_BINARY_CACHE_DIR}")
+message(STATUS "ENV-CPM_SOURCE_CACHE=$ENV{CPM_SOURCE_CACHE}")
+
 if (DEFINED ENV{CPM_BINARY_CACHE_DIR})
     set(CPM_BINARY_CACHE_DIR_DEFAULT $ENV{CPM_BINARY_CACHE_DIR})
 else ()
@@ -44,6 +48,10 @@ include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
 if (NOT CPM_SOURCE_CACHE)
     set(CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_DIR}/src CACHE PATH "The directory where the cached source packages are stored")
 endif ()
+
+message(STATUS "CPM_BINARY_CACHE_DISABLED=${CPM_BINARY_CACHE_DISABLED}")
+message(STATUS "CPM_BINARY_CACHE_DIR=${CPM_BINARY_CACHE_DIR}")
+message(STATUS "CPM_SOURCE_CACHE=${CPM_SOURCE_CACHE}")
 
 if (NOT CPM_PACKAGES)
     if (CPM_BINARY_CACHE_DISABLED)
@@ -141,7 +149,7 @@ function(CPMAddPackageCached)
     set(CPM_PACKAGE_${CPM_ARGS_NAME}_HASH ${package_hash} CACHE INTERNAL "")
 
     # Check if package is already cached
-    if (CPM_BINARY_CACHE_DISABLED)
+    if (CPM_BINARY_CACHE_DISABLED OR NOT CPM_BINARY_CACHE_DIR)
         # Forward args to CPM, no caching
         CPMAddPackage(${ARGN})
     else ()
