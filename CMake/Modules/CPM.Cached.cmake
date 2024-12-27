@@ -41,6 +41,10 @@ set(CPM_BINARY_CACHE_USE_VARS "$ENV{CPM_BINARY_CACHE_USE_VARS}" CACHE STRING "Fo
 set(CPM_DONT_UPDATE_MODULE_PATH ON)
 include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
 
+if (NOT CPM_SOURCE_CACHE)
+    set(CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_DIR}/src CACHE PATH "The directory where the cached source packages are stored")
+endif ()
+
 if (NOT CPM_PACKAGES)
     if (CPM_BINARY_CACHE_DISABLED)
         message(STATUS "CPM binary cache is disabled.")
@@ -179,7 +183,7 @@ function(CPMAddPackageCached)
             endif ()
 
             # Forward arguments that define build environment to the dependency generator.
-            foreach(arg BUILD_SHARED_LIBS CMAKE_TOOLCHAIN_FILE CMAKE_GENERATOR CMAKE_GENERATOR_PLATFORM CPM_BINARY_CACHE_DIR CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_USE_VARS})
+            foreach(arg BUILD_SHARED_LIBS CMAKE_TOOLCHAIN_FILE CMAKE_GENERATOR CMAKE_GENERATOR_PLATFORM ${CPM_BINARY_CACHE_USE_VARS})
                 if (DEFINED ${arg})
                     list(APPEND extra_configure_args -D${arg}=${${arg}})
                 endif()
