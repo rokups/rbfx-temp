@@ -26,26 +26,20 @@
 # - `CMAKE_GENERATOR_PLATFORM`: The generator platform.
 #
 
-option(CPM_BINARY_CACHE_DIR "The directory where the cached packages are stored" "$ENV{CPM_BINARY_CACHE_DIR}")
+if (DEFINED ENV{CPM_BINARY_CACHE_DIR})
+    set(CPM_BINARY_CACHE_DIR_DEFAULT $ENV{CPM_BINARY_CACHE_DIR})
+else ()
+    set(CPM_BINARY_CACHE_DIR_DEFAULT ${CMAKE_BINARY_DIR}/../rbfx-deps-cache)
+    get_filename_component(CPM_BINARY_CACHE_DIR_DEFAULT ${CPM_BINARY_CACHE_DIR_DEFAULT} REALPATH)
+endif ()
+
+option(CPM_BINARY_CACHE_DIR "The directory where the cached packages are stored" "${CPM_BINARY_CACHE_DIR_DEFAULT}")
 option(CPM_BINARY_CACHE_DISABLED "Disable CPM binary cache" "$ENV{CPM_BINARY_CACHE_DISABLED}")
 set(CPM_BINARY_CACHE_USE_VARS "$ENV{CPM_BINARY_CACHE_USE_VARS}" CACHE STRING "Forward these variables to the dependency build generation")
 
 # We handle this ourselves at the end of CPMAddPackageCached.
 set(CPM_DONT_UPDATE_MODULE_PATH ON)
 include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
-
-# Configure cache directories if they were not set.
-if (NOT CPM_BINARY_CACHE_DIR)
-    set(CPM_BINARY_CACHE_DIR ${CMAKE_BINARY_DIR}/../rbfx-deps-cache)
-    get_filename_component(CPM_BINARY_CACHE_DIR ${CPM_BINARY_CACHE_DIR} REALPATH)
-    set(CPM_BINARY_CACHE_DIR ${CPM_BINARY_CACHE_DIR} CACHE PATH "The directory where the cached packages are stored")
-endif()
-if (NOT CPM_SOURCE_CACHE)
-    set(CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_DIR}/src)
-    get_filename_component(CPM_SOURCE_CACHE ${CPM_SOURCE_CACHE} REALPATH)
-    set(CPM_SOURCE_CACHE ${CPM_SOURCE_CACHE} CACHE PATH "The directory where the cached sources are stored")
-endif()
-
 
 if (NOT CPM_PACKAGES)
     if (CPM_BINARY_CACHE_DISABLED)
