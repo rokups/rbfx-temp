@@ -10,9 +10,6 @@
 # The script can be configured using following environment variables:
 # - `CPM_BINARY_CACHE_DIR`: The directory where the cached packages are stored. Defaults to `~/.cpm_cache`.
 #     Users are advised to use unique cache directories for different projects.
-# - `CPM_BINARY_CACHE_ALWAYS_INSTALL`: If set, the package is always built and installed. For debugging only.
-# - `CPM_BINARY_CACHE_DISABLED`: If set, package caching is skipped and CPMAddPackageCached forwards to
-#     CPMAddPackage.
 # - `CPM_BINARY_CACHE_USE_VARS`: If set, the script forwards all specified variables to the dependency builds.
 #
 # The script also can be configured using the following CMake variables:
@@ -26,39 +23,32 @@
 # - `CMAKE_GENERATOR_PLATFORM`: The generator platform.
 #
 
-message(STATUS "ENV-CPM_BINARY_CACHE_DISABLED=$ENV{CPM_BINARY_CACHE_DISABLED}")
-message(STATUS "ENV-CPM_BINARY_CACHE_DIR=$ENV{CPM_BINARY_CACHE_DIR}")
-message(STATUS "ENV-CPM_SOURCE_CACHE=$ENV{CPM_SOURCE_CACHE}")
-
 if (DEFINED ENV{CPM_BINARY_CACHE_DIR})
     set(CPM_BINARY_CACHE_DIR_DEFAULT $ENV{CPM_BINARY_CACHE_DIR})
 else ()
     set(CPM_BINARY_CACHE_DIR_DEFAULT ${CMAKE_BINARY_DIR}/../rbfx-deps-cache)
-    get_filename_component(CPM_BINARY_CACHE_DIR_DEFAULT ${CPM_BINARY_CACHE_DIR_DEFAULT} REALPATH)
 endif ()
+get_filename_component(CPM_BINARY_CACHE_DIR_DEFAULT ${CPM_BINARY_CACHE_DIR_DEFAULT} REALPATH)
 
-option(CPM_BINARY_CACHE_DIR "The directory where the cached packages are stored" "${CPM_BINARY_CACHE_DIR_DEFAULT}")
-option(CPM_BINARY_CACHE_DISABLED "Disable CPM binary cache" "$ENV{CPM_BINARY_CACHE_DISABLED}")
+set(CPM_BINARY_CACHE_DIR      "${CPM_BINARY_CACHE_DIR_DEFAULT}" CACHE PATH   "The directory where the cached packages are stored")
 set(CPM_BINARY_CACHE_USE_VARS "$ENV{CPM_BINARY_CACHE_USE_VARS}" CACHE STRING "Forward these variables to the dependency build generation")
+
+# Define source code cache inside our binary cache directory.
+if (NOT CPM_SOURCE_CACHE)
+    set(CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_DIR}/src CACHE PATH "The directory where the cached source packages are stored")
+endif ()
+get_filename_component(CPM_SOURCE_CACHE ${CPM_SOURCE_CACHE} REALPATH)
 
 # We handle this ourselves at the end of CPMAddPackageCached.
 set(CPM_DONT_UPDATE_MODULE_PATH ON)
 include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
 
-if (NOT CPM_SOURCE_CACHE)
-    set(CPM_SOURCE_CACHE ${CPM_BINARY_CACHE_DIR}/src CACHE PATH "The directory where the cached source packages are stored")
-endif ()
-
-message(STATUS "CPM_BINARY_CACHE_DISABLED=${CPM_BINARY_CACHE_DISABLED}")
-message(STATUS "CPM_BINARY_CACHE_DIR=${CPM_BINARY_CACHE_DIR}")
-message(STATUS "CPM_SOURCE_CACHE=${CPM_SOURCE_CACHE}")
-
 if (NOT CPM_PACKAGES)
-    if (CPM_BINARY_CACHE_DISABLED)
-        message(STATUS "CPM binary cache is disabled.")
-    else ()
+    if (CPM_BINARY_CACHE_DIR)
         message(STATUS "CPM binary cache is enabled.")
         message(STATUS "CPM binary cache directory: ${CPM_BINARY_CACHE_DIR}")
+    else ()
+        message(STATUS "CPM binary cache is disabled.")
     endif ()
     message(STATUS "CPM source cache directory: ${CPM_SOURCE_CACHE}")
 endif ()
@@ -149,7 +139,7 @@ function(CPMAddPackageCached)
     set(CPM_PACKAGE_${CPM_ARGS_NAME}_HASH ${package_hash} CACHE INTERNAL "")
 
     # Check if package is already cached
-    if (CPM_BINARY_CACHE_DISABLED OR NOT CPM_BINARY_CACHE_DIR)
+    if (NOT CPM_BINARY_CACHE_DIR)
         # Forward args to CPM, no caching
         CPMAddPackage(${ARGN})
     else ()
@@ -170,7 +160,7 @@ function(CPMAddPackageCached)
         # Build and install one or more configs.
         # User may set CMAKE_CONFIGURATION_TYPES to reduce amount of configurations used.
         # User may use a single-config generator as well.
-        if (NOT EXISTS "${package_cached_path}" OR "$ENV{CPM_BINARY_CACHE_ALWAYS_INSTALL}")
+        if (NOT EXISTS "${package_cached_path}")
             get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
             if (is_multi_config)
                 if (NOT DEFINED CPM_ARGS_BUILD_TYPES)
@@ -242,7 +232,6 @@ function(CPMAddPackageCached)
     file(WRITE "${filename}"
         "include(${CMAKE_CURRENT_FUNCTION_LIST_FILE})\n"
         "set(CPM_BINARY_CACHE_DIR \"${CPM_BINARY_CACHE_DIR}\")\n"
-        "set(CPM_BINARY_CACHE_DISABLED \"${CPM_BINARY_CACHE_DISABLED}\")\n"
         "set(CPM_BINARY_CACHE_USE_VARS \"${CPM_BINARY_CACHE_USE_VARS}\")\n"
         "set(CPM_SOURCE_CACHE \"${CPM_SOURCE_CACHE}\")\n"
         "set(CPM_BINARY_CACHE_SILENT ON)\n"
