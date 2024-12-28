@@ -40,7 +40,16 @@ endif ()
 get_filename_component(CPM_SOURCE_CACHE ${CPM_SOURCE_CACHE} REALPATH)
 
 # We handle this ourselves at the end of CPMAddPackageCached.
-set(CPM_DONT_UPDATE_MODULE_PATH ON)
+if (CPM_BINARY_CACHE_DIR)
+    # When caching, we do this ourselves.
+    set(CPM_DONT_UPDATE_MODULE_PATH ON)
+    list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/CPM_modules")
+    list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
+    set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
+else ()
+    # When not caching, it is fine for CPM to handle this for us.
+    set(CPM_DONT_UPDATE_MODULE_PATH OFF)
+endif ()
 include(${CMAKE_CURRENT_LIST_DIR}/CPM.cmake)
 
 if (NOT CPM_PACKAGES)
@@ -52,12 +61,6 @@ if (NOT CPM_PACKAGES)
     endif ()
     message(STATUS "CPM source cache directory: ${CPM_SOURCE_CACHE}")
 endif ()
-
-# Expose CPM-added packages to find_package(). This may not be entirely correct, as
-# CMAKE_MODULE_PATH will provide imported targets instead of library information
-# as variables. Some dependencies may not expect this and we may have to patch them.
-list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/pkg_prefix)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/pkg_prefix)
 
 # Create a unique signature of a package build. Changes to this function invalidate
 # existing caches!
@@ -192,7 +195,7 @@ function(CPMAddPackageCached)
             cpm_cache_exec_process(
                 "Generating ${CPM_ARGS_NAME} build directory:"
                 ${CMAKE_COMMAND} -S ${${CPM_ARGS_NAME}_SOURCE_DIR} -B ${${CPM_ARGS_NAME}_BINARY_DIR}
-                                -DCMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/pkg_prefix -DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/pkg_prefix
+                                -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH} -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
                                 ${extra_configure_args} ${CPM_ARGS_OPTIONS}
             )
             if (LAST_ERROR)
@@ -221,42 +224,17 @@ function(CPMAddPackageCached)
                     message(FATAL_ERROR "Failed to install ${CPM_ARGS_NAME}.")
                 endif()
             endforeach()
+
         endif ()
+
+        # Include package binary cache path in the prefix search path for config mode.
+        list(APPEND CMAKE_PREFIX_PATH ${package_cached_path})
+        list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
+        set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
+
+        # Redirect module mode searches to config mode.
+        file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/CPM_modules")
+        set(filename "${CMAKE_BINARY_DIR}/CPM_modules/Find${CPM_ARGS_NAME}.cmake")
+        file(WRITE "${filename}" "find_package(${CPM_ARGS_NAME} CONFIG PATHS \"${package_cached_path}\" NO_DEFAULT_PATH)\n")
     endif ()
-
-    # Replace CPMAddPackage with CPMAddPackageCached in the the module file used by find_package().
-    string(TOLOWER ${CPM_ARGS_NAME} CPM_ARGS_NAME_LOWER)
-
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/pkg_prefix)
-    set(filename "${CMAKE_BINARY_DIR}/pkg_prefix/Find${CPM_ARGS_NAME}.cmake")
-    file(WRITE "${filename}"
-        "include(${CMAKE_CURRENT_FUNCTION_LIST_FILE})\n"
-        "set(CPM_BINARY_CACHE_DIR \"${CPM_BINARY_CACHE_DIR}\")\n"
-        "set(CPM_BINARY_CACHE_USE_VARS \"${CPM_BINARY_CACHE_USE_VARS}\")\n"
-        "set(CPM_SOURCE_CACHE \"${CPM_SOURCE_CACHE}\")\n"
-        "set(CPM_BINARY_CACHE_SILENT ON)\n"
-        "CPMAddPackageCached(\"${ARGN}\")\n"
-        "set(${CPM_ARGS_NAME}_FOUND TRUE)\n"
-    )
-    file(COPY_FILE ${filename} ${CMAKE_BINARY_DIR}/pkg_prefix/${CPM_ARGS_NAME_LOWER}-config.cmake)
-
-    # Include built package.
-    # TODO: Name list may not be exhaustive, user may use unconventional names.
-    foreach(filename_variant
-        "${CPM_ARGS_NAME}Config.cmake"
-        "${CPM_ARGS_NAME_LOWER}-config.cmake")
-        # This list is definitely not exhaustive. See https://cmake.org/cmake/help/latest/command/find_package.html#id10
-        foreach(dir_variant
-            ""
-            "/cmake"
-            "/cmake/${CPM_ARGS_NAME_LOWER}"
-            "/lib/cmake"
-            "/lib/cmake/${CPM_ARGS_NAME_LOWER}")
-            set(config_file_path ${package_cached_path}${dir_variant}/${filename_variant})
-            if (EXISTS ${config_file_path})
-                include(${config_file_path})
-                break()
-            endif ()
-        endforeach()
-    endforeach()
 endfunction()
