@@ -214,6 +214,7 @@ set (PUBLIC_THIRD_PARTY_DEPENDENCIES
     Vulkan-Headers
     datachannel-static
 )
+filter_target_list(PUBLIC_THIRD_PARTY_DEPENDENCIES)
 
 # Private dependencies that are hidden from the user and are not exposed in the public API or headers
 set (PRIVATE_THIRD_PARTY_DEPENDENCIES
@@ -229,6 +230,8 @@ set (PRIVATE_THIRD_PARTY_DEPENDENCIES
     SPIRV-Reflect
     spdlog::spdlog
 )
+filter_target_list(PRIVATE_THIRD_PARTY_DEPENDENCIES)
+
 if (TARGET datachannel-wasm)
     target_link_libraries(Urho3D PUBLIC datachannel-wasm)
 endif ()
@@ -256,82 +259,82 @@ endif ()
 
 cpm_cache_path(CPM_CACHE_DIR)
 foreach (dep ${PUBLIC_THIRD_PARTY_DEPENDENCIES})
-    if (TARGET "${dep}")
-        # By linking them as private but inheriting definitions/options/dirs we avoid having
-        # to export third party lib targets in a monolithic dll build.
-        get_target_property(_TARGET_TYPE ${dep} TYPE)
-        if (${_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
-            if ((BUILD_SHARED_LIBS AND MSVC) OR UWP)
-                # Somehow this is necessary for UWP no matter what.
-                target_link_options(Urho3D PRIVATE /WHOLEARCHIVE:$<TARGET_FILE:${dep}>)
-            elseif (BUILD_SHARED_LIBS AND APPLE)
-                target_link_libraries(Urho3D PRIVATE -force_load $<TARGET_FILE:${dep}>)
-            elseif (BUILD_SHARED_LIBS)
-                target_link_libraries(Urho3D PRIVATE -Wl,--whole-archive ${dep} -Wl,--no-whole-archive)
-            endif ()
-            if (BUILD_SHARED_LIBS OR URHO3D_MERGE_STATIC_LIBS)
-                # Shared builds and static builds with URHO3D_MERGE_STATIC_LIBS export dependencies from Urho3D target.
-                add_dependencies(Urho3D ${dep})
-            else ()
-                # Static builds with no monolithic library target. Do the normal linking.
-                target_link_libraries(Urho3D PUBLIC ${dep})
-                continue()
-            endif ()
+    # By linking them as private but inheriting definitions/options/dirs we avoid having
+    # to export third party lib targets in a monolithic dll build.
+    get_target_property(_TARGET_TYPE ${dep} TYPE)
+    if (${_TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
+        if (BUILD_SHARED_LIBS OR UWP)
+            # Somehow this is necessary for UWP no matter what.
+            target_link_libraries(Urho3D PRIVATE $<LINK_LIBRARY:WHOLE_ARCHIVE,${dep}>)
+        endif ()
+        if (BUILD_SHARED_LIBS OR URHO3D_MERGE_STATIC_LIBS)
+            # Shared builds and static builds with URHO3D_MERGE_STATIC_LIBS export dependencies from Urho3D target.
+            add_dependencies(Urho3D ${dep})
         else ()
-            # Shared libraries can not be merged into the final dll.
+            # Static builds with no monolithic library target. Do the normal linking.
             target_link_libraries(Urho3D PUBLIC ${dep})
             continue()
         endif ()
+    else ()
+        # Shared/interface libraries can not be merged into the final dll.
+        target_link_libraries(Urho3D PUBLIC ${dep})
+        continue()
+    endif ()
 
-        get_target_property(VALUE "${dep}" INTERFACE_COMPILE_DEFINITIONS)
-        if (VALUE)
-            target_compile_definitions(Urho3D PUBLIC ${VALUE})
-        endif ()
-        get_target_property(VALUE "${dep}" INTERFACE_COMPILE_OPTIONS)
-        if (VALUE)
-            target_compile_options(Urho3D PUBLIC ${VALUE})
-        endif ()
-        get_target_property(VALUE "${dep}" INTERFACE_INCLUDE_DIRECTORIES)
-        if (VALUE)
-            foreach(inc ${VALUE})
-                # This is probably an external package that reisdes in the cache.
-                # Assume include path is in the format of $<CACHE_DIR>/<name>/include/...
-                if (CPM_CACHE_DIR AND "${inc}" MATCHES "^${CPM_CACHE_DIR}/([^/]+)/[a-fA-F0-9]+/include(/.+)?$")
-                    # This is a dependency from package cache.
-                    set(install_dir ${DEST_BASE_INCLUDE_DIR}${CMAKE_MATCH_2})
-                    target_include_directories(Urho3D PUBLIC $<BUILD_INTERFACE:${inc}> $<INSTALL_INTERFACE:${install_dir}>)
-                    install(DIRECTORY ${inc}/ DESTINATION ${install_dir})
-                else ()
-                    # Assume that package took care of paths being well-formed.
-                    # These paths should be a mixture of $<BUILD_INTERFACE:...> and $<INSTALL_INTERFACE:...>
-                    # that can be forwarded as is.
-                    target_include_directories(Urho3D PUBLIC ${inc})
-                endif ()
-            endforeach()
-        endif ()
-        get_target_property(VALUE ${dep} INTERFACE_LINK_LIBRARIES)
-        if (VALUE)
-            foreach (dep_lib ${VALUE})
-                # This library will be/was merged into the dll already.
-                if ("${dep_lib}" IN_LIST PUBLIC_THIRD_PARTY_DEPENDENCIES)
-                    continue()
-                endif()
+    # Forward compile definitions
+    get_target_property(VALUE "${dep}" INTERFACE_COMPILE_DEFINITIONS)
+    if (VALUE)
+        target_compile_definitions(Urho3D PUBLIC ${VALUE})
+    endif ()
 
-                # This is a package that we are not aware of yet.
-                if ("${dep_lib}" MATCHES "([a-zA-Z0-9_]+)::([^:]+)")
-                    if (NOT TARGET ${CMAKE_MATCH_1})
-                        if (NOT ${CMAKE_MATCH_1}_FOUND)
-                            find_package(${CMAKE_MATCH_1})
-                            if (NOT ${CMAKE_MATCH_1}_FOUND)
-                                continue()
-                            endif ()
-                        endif ()
+    # Forward compile options
+    get_target_property(VALUE "${dep}" INTERFACE_COMPILE_OPTIONS)
+    if (VALUE)
+        target_compile_options(Urho3D PUBLIC ${VALUE})
+    endif ()
+
+    # Forward include directories, install them with the SDK if necessary
+    get_target_property(VALUE "${dep}" INTERFACE_INCLUDE_DIRECTORIES)
+    if (VALUE)
+        foreach(inc ${VALUE})
+            # This is probably an external package that reisdes in the cache.
+            # Assume include path is in the format of $<CACHE_DIR>/<name>/include/...
+            if (CPM_CACHE_DIR AND "${inc}" MATCHES "^${CPM_CACHE_DIR}/([^/]+)/[a-fA-F0-9]+/include(/.+)?$")
+                # This is a dependency from package cache.
+                set(install_dir ${DEST_BASE_INCLUDE_DIR}${CMAKE_MATCH_2})
+                target_include_directories(Urho3D PUBLIC $<BUILD_INTERFACE:${inc}> $<INSTALL_INTERFACE:${install_dir}>)
+                install(DIRECTORY ${inc}/ DESTINATION ${install_dir})
+            else ()
+                # Assume that package took care of paths being well-formed.
+                # These paths should be a mixture of $<BUILD_INTERFACE:...> and $<INSTALL_INTERFACE:...>
+                # that can be forwarded as is.
+                target_include_directories(Urho3D PUBLIC ${inc})
+            endif ()
+        endforeach()
+    endif ()
+
+    # Forward link libraries
+    get_target_property(VALUE ${dep} INTERFACE_LINK_LIBRARIES)
+    if (VALUE)
+        foreach (dep_lib ${VALUE})
+            # This library will be/was merged into the dll already.
+            if ("${dep_lib}" IN_LIST PUBLIC_THIRD_PARTY_DEPENDENCIES)
+                continue()
+            endif()
+
+            # This is a package that we are not aware of yet.
+            if ("${dep_lib}" MATCHES "([a-zA-Z0-9_]+)::([^:]+)")
+                if (NOT TARGET ${CMAKE_MATCH_1})
+                    if (NOT ${CMAKE_MATCH_1}_FOUND)
+                        find_package(${CMAKE_MATCH_1} QUIET)
                     endif ()
                 endif ()
-
-                target_link_libraries (Urho3D PUBLIC ${dep_lib})
-            endforeach ()
-        endif ()
+            endif ()
+            if (NOT "${dep_lib}" MATCHES "$\\$<.+")
+                set(dep_lib "$<LINK_ONLY:${dep_lib}>")
+            endif()
+            target_link_libraries (Urho3D PUBLIC ${dep_lib})
+        endforeach ()
     endif ()
 endforeach()
 
