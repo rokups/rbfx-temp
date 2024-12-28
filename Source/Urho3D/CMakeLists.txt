@@ -170,9 +170,6 @@ if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/librevision.h)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_QUIET ERROR_QUIET)
 endif ()
 
-find_package(X11)
-find_package(OpenGL)
-find_package(Threads)
 find_package(fmt REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(SDL2 REQUIRED)
@@ -315,13 +312,21 @@ foreach (dep ${PUBLIC_THIRD_PARTY_DEPENDENCIES})
         get_target_property(VALUE ${dep} INTERFACE_LINK_LIBRARIES)
         if (VALUE)
             foreach (dep_lib ${VALUE})
+                # This library will be/was merged into the dll already.
                 if ("${dep_lib}" IN_LIST PUBLIC_THIRD_PARTY_DEPENDENCIES)
-                    # This library will be/was merged into the dll already.
                     continue()
                 endif()
 
-                # Merge libraties that are not generator expressions.
-                target_link_libraries (Urho3D PRIVATE ${dep_lib})
+                # This is a package that we are not aware of yet.
+                if ("${dep_lib}" MATCHES "([a-zA-Z0-9_]+)::([^:]+)")
+                    if (NOT TARGET ${CMAKE_MATCH_1})
+                        if (NOT ${CMAKE_MATCH_1}_FOUND)
+                            find_package(${CMAKE_MATCH_1} REQUIRED)
+                        endif ()
+                    endif ()
+                endif ()
+
+                target_link_libraries (Urho3D PUBLIC ${dep_lib})
             endforeach ()
         endif ()
     endif ()

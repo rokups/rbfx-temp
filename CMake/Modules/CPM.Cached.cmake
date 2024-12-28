@@ -43,7 +43,7 @@ get_filename_component(CPM_SOURCE_CACHE ${CPM_SOURCE_CACHE} REALPATH)
 if (CPM_BINARY_CACHE_DIR)
     # When caching, we do this ourselves.
     set(CPM_DONT_UPDATE_MODULE_PATH ON)
-    list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/CPM_modules")
+    set(CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/CPM_modules;${CMAKE_MODULE_PATH}")
     list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
     set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
 else ()
@@ -192,10 +192,12 @@ function(CPMAddPackageCached)
 
             # Generate build dir.
             string(REGEX REPLACE "([a-zA-Z0-9_]+) +([^;]+)" "-D\\1=\\2" CPM_ARGS_OPTIONS "${CPM_ARGS_OPTIONS}")
+            string(REPLACE ";" "$<SEMICOLON>" CMAKE_MODULE_PATH_SEM "${CMAKE_MODULE_PATH}")
+            string(REPLACE ";" "$<SEMICOLON>" CMAKE_PREFIX_PATH_SEM "${CMAKE_PREFIX_PATH}")
             cpm_cache_exec_process(
                 "Generating ${CPM_ARGS_NAME} build directory:"
+                ${CMAKE_COMMAND} -E env CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH_SEM} CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH_SEM} --
                 ${CMAKE_COMMAND} -S ${${CPM_ARGS_NAME}_SOURCE_DIR} -B ${${CPM_ARGS_NAME}_BINARY_DIR}
-                                -DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH} -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
                                 ${extra_configure_args} ${CPM_ARGS_OPTIONS}
             )
             if (LAST_ERROR)
