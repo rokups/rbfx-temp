@@ -78,10 +78,6 @@ function(cmp_cache_package_hash out)
         endforeach()
     endif()
 
-    # Hash system name
-    list(APPEND hashable_args CMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME})
-    list(APPEND hashable_args CMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION})
-
     # Hash toolchain file
     if (EXISTS ${CMAKE_TOOLCHAIN_FILE})
         file(READ ${CMAKE_TOOLCHAIN_FILE} toolchain_content)
@@ -93,7 +89,10 @@ function(cmp_cache_package_hash out)
     get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     list(APPEND hashable_args is_multi_config=${is_multi_config})
 
-    #message(STATUS "Hashing package with: ${hashable_args}")
+    # Hash other relevant variables
+    foreach (arg CMAKE_SYSTEM_NAME CMAKE_SYSTEM_VERSION CMAKE_SIZEOF_VOID_P)
+        list(APPEND hashable_args ${arg}=${${arg}})
+    endforeach ()
 
     # Produce package hash
     string(MD5 package_hash "${hashable_args}")
@@ -196,24 +195,14 @@ function(CPMAddPackageCached)
                 if (pkg STREQUAL CPM_ARGS_NAME)
                     continue()
                 endif ()
-                set(other_package_cached_path ${CPM_CACHE_DIR}/${pkg}/${CPM_PACKAGE_${pkg}_HASH})
-                if (EXISTS "${other_package_cached_path}")
-                    list(APPEND dependency_prefix_path ${other_package_cached_path})
-                endif()
+                list(APPEND pkg_dirs ${pkg}_DIR=${${pkg}_DIR})
             endforeach()
-
-            if (CMAKE_HOST_WIN32)
-                set(path_sep "$<SEMICOLON>")
-            else ()
-                set(path_sep ":")
-            endif ()
-            string(REPLACE ";" "${path_sep}" dependency_prefix_path "${dependency_prefix_path}")
 
             # Generate build dir.
             string(REGEX REPLACE "([a-zA-Z0-9_]+) +([^;]+)" "-D\\1=\\2" CPM_ARGS_OPTIONS "${CPM_ARGS_OPTIONS}")
             cpm_cache_exec_process(
                 "Generating ${CPM_ARGS_NAME} build directory:"
-                ${CMAKE_COMMAND} -E env ${extra_env_args} CMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/CPM_modules CMAKE_PREFIX_PATH=${dependency_prefix_path} --
+                ${CMAKE_COMMAND} -E env ${extra_env_args} CMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/CPM_modules ${pkg_dirs} --
                 ${CMAKE_COMMAND} -S ${${CPM_ARGS_NAME}_SOURCE_DIR} -B ${${CPM_ARGS_NAME}_BINARY_DIR}
                                 ${extra_configure_args} ${CPM_ARGS_OPTIONS} -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH
             )
@@ -247,9 +236,17 @@ function(CPMAddPackageCached)
         endif ()
 
         # Include package binary cache path in the prefix search path for config mode.
-        list(APPEND CMAKE_PREFIX_PATH ${package_cached_path})
-        list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
-        set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
+        string(TOLOWER ${CPM_ARGS_NAME} CPM_ARGS_NAME_LOWER)
+        file(GLOB_RECURSE pkg_file
+            "${package_cached_path}/*/${CPM_ARGS_NAME}Config.cmake"
+            "${package_cached_path}/*/${CPM_ARGS_NAME_LOWER}-config.cmake")
+        list(GET pkg_file 0 pkg_file)
+        if (pkg_file)
+            get_filename_component(pkg_file_dir ${pkg_file} DIRECTORY)
+            set(${CPM_ARGS_NAME}_DIR ${pkg_file_dir} CACHE PATH "Path to ${CPM_ARGS_NAME} config file" FORCE)
+        else ()
+            message(FATAL_ERROR "Could not find ${CPM_ARGS_NAME} config file in ${package_cached_path}.")
+        endif ()
 
         # Redirect module mode searches to config mode.
         file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/CPM_modules")

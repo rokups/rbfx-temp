@@ -390,11 +390,11 @@ if (GNU OR Clang)
     # Disable very annoying warning
     target_compile_options(Urho3D PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wno-invalid-offsetof>)
     # Enable RTTI
-    target_compile_options(Urho3D PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-frtti>)
+    target_compile_options(Urho3D PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-frtti>)
 elseif (MSVC)
     # Enable RTTI
     if (NOT /GR IN_LIST CMAKE_CXX_FLAGS)
-        target_compile_options(Urho3D PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/GR>)
+        target_compile_options(Urho3D PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/GR>)
     endif ()
 endif ()
 
