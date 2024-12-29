@@ -80,6 +80,8 @@ function(cmp_cache_package_hash out)
 
     # Hash system name
     list(APPEND hashable_args CMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME})
+    list(APPEND hashable_args CMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION})
+
     # Hash toolchain file
     if (EXISTS ${CMAKE_TOOLCHAIN_FILE})
         file(READ ${CMAKE_TOOLCHAIN_FILE} toolchain_content)
@@ -184,7 +186,7 @@ function(CPMAddPackageCached)
             endif ()
 
             # Forward arguments that define build environment to the dependency generator.
-            foreach(arg BUILD_SHARED_LIBS CMAKE_TOOLCHAIN_FILE CMAKE_GENERATOR CMAKE_GENERATOR_PLATFORM ${CPM_BINARY_CACHE_USE_VARS})
+            foreach(arg BUILD_SHARED_LIBS CMAKE_TOOLCHAIN_FILE CMAKE_GENERATOR CMAKE_GENERATOR_PLATFORM CMAKE_SYSTEM_NAME CMAKE_SYSTEM_VERSION ${CPM_BINARY_CACHE_USE_VARS})
                 if (DEFINED ${arg})
                     list(APPEND extra_configure_args -D${arg}=${${arg}})
                 endif()

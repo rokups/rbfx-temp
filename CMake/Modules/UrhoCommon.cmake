@@ -100,6 +100,18 @@ if (NOT MULTI_CONFIG_PROJECT AND NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
 endif ()
 
+if (UWP)
+    if (NOT CMAKE_SIZEOF_VOID_P)
+        set(CMAKE_SIZEOF_VOID_P 4)
+    endif ()
+    if (NOT CMAKE_SYSTEM_PROCESSOR)
+        set(CMAKE_SYSTEM_PROCESSOR x86)
+    endif ()
+    if (NOT CMAKE_GENERATOR_PLATFORM)
+        set(CMAKE_GENERATOR_PLATFORM win32)
+    endif ()
+endif ()
+
 # Generate CMake.props which will be included in .csproj files. This function should be called after all targets are
 # added to the project, because it depends on target properties.
 function (rbfx_configure_cmake_props)

@@ -158,13 +158,14 @@ function action-dependencies() {
       find $ci_workspace_dir/host-sdk/bin/ -type f -exec chmod +x {} \;
     fi
 
+    dev_packages=(
+        libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxrender-dev libxss-dev
+        libasound2-dev libpulse-dev libibus-1.0-dev libdbus-1-dev libreadline6-dev libudev-dev uuid-dev libtbb-dev
+    )
+
     if [[ "$ci_platform" == "linux" ]];
     then
         # Linux dependencies
-        dev_packages=(
-            libgl1-mesa-dev libxcursor-dev libxi-dev libxinerama-dev libxrandr-dev libxrender-dev libxss-dev
-            libasound2-dev libpulse-dev libibus-1.0-dev libdbus-1-dev libreadline6-dev libudev-dev uuid-dev libtbb-dev
-        )
 
         if [[ "$ci_arch" != "x64" ]];
         then
@@ -199,7 +200,7 @@ function action-dependencies() {
     elif [[ "$ci_platform" == "web" || "$ci_platform" == "android" ]];
     then
         # Web / android dependencies
-        sudo apt-get install -y --no-install-recommends uuid-dev ninja-build ccache
+        sudo apt-get install -y --no-install-recommends uuid-dev ninja-build ccache "${dev_packages[@]}"
     elif [[ "$ci_platform" == "macos" || "$ci_platform" == "ios" ]];
     then
         # iOS/MacOS dependencies
