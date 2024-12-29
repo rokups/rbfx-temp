@@ -190,15 +190,30 @@ function(CPMAddPackageCached)
                 endif()
             endforeach()
 
+            foreach (pkg ${CPM_PACKAGES})
+                if (pkg STREQUAL CPM_ARGS_NAME)
+                    continue()
+                endif ()
+                set(other_package_cached_path ${CPM_CACHE_DIR}/${pkg}/${CPM_PACKAGE_${pkg}_HASH})
+                if (EXISTS "${other_package_cached_path}")
+                    list(APPEND dependency_prefix_path ${other_package_cached_path})
+                endif()
+            endforeach()
+
+            if (CMAKE_HOST_WIN32)
+                set(path_sep "$<SEMICOLON>")
+            else ()
+                set(path_sep ":")
+            endif ()
+            string(REPLACE ";" "${path_sep}" dependency_prefix_path "${dependency_prefix_path}")
+
             # Generate build dir.
             string(REGEX REPLACE "([a-zA-Z0-9_]+) +([^;]+)" "-D\\1=\\2" CPM_ARGS_OPTIONS "${CPM_ARGS_OPTIONS}")
-            string(REPLACE ";" "$<SEMICOLON>" CMAKE_MODULE_PATH_SEM "${CMAKE_MODULE_PATH}")
-            string(REPLACE ";" "$<SEMICOLON>" CMAKE_PREFIX_PATH_SEM "${CMAKE_PREFIX_PATH}")
             cpm_cache_exec_process(
                 "Generating ${CPM_ARGS_NAME} build directory:"
-                ${CMAKE_COMMAND} -E env CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH_SEM} CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH_SEM} --
+                ${CMAKE_COMMAND} -E env ${extra_env_args} CMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/CPM_modules CMAKE_PREFIX_PATH=${dependency_prefix_path} --
                 ${CMAKE_COMMAND} -S ${${CPM_ARGS_NAME}_SOURCE_DIR} -B ${${CPM_ARGS_NAME}_BINARY_DIR}
-                                ${extra_configure_args} ${CPM_ARGS_OPTIONS}
+                                ${extra_configure_args} ${CPM_ARGS_OPTIONS} -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH
             )
             if (LAST_ERROR)
                 message(FATAL_ERROR "Failed to generate build directory for ${CPM_ARGS_NAME}. (${LAST_ERROR})")
