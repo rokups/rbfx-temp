@@ -84,6 +84,11 @@ if (NOT WEB)
     endif ()
 endif ()
 
+# These toolchains mess with find_package(), undo damage.
+if (WEB OR ANDROID)
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+endif ()
+
 # Configure variables
 set (URHO3D_URL "https://github.com/urho3d/Urho3D")
 set (URHO3D_DESCRIPTION "Urho3D is a free lightweight, cross-platform 2D and 3D game engine implemented in C++ and released under the MIT license. Greatly inspired by OGRE (http://www.ogre3d.org) and Horde3D (http://www.horde3d.org).")
@@ -190,8 +195,8 @@ if (WEB)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --profiling -Wno-warn-absolute-paths -Wno-unknown-warning-option -Wno-deprecated-builtins")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --profiling -Wno-warn-absolute-paths -Wno-unknown-warning-option -Wno-deprecated-builtins")
     if (URHO3D_THREADING)
-        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_PTHREADS=1")
-        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_PTHREADS=1")
+        set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_PTHREADS=1 -pthread")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_PTHREADS=1 -pthread")
     endif ()
     if (CI_WEB_BUILD)
         set (CMAKE_C_FLAGS_DEBUG "-O0 -DNDEBUG")
