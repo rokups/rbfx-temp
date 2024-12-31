@@ -1,17 +1,17 @@
-From d6c82b17a4f4656ec1736f71c2a9fe1f04ee73a4 Mon Sep 17 00:00:00 2001
-From: Rokas Kupstys <rokups@zoho.com>
-Date: Tue, 24 Dec 2024 11:25:23 +0200
-Subject: [PATCH] Custom Urho3D/rbfx patches.
+From 5bcb4e5c0da2902a762cb89c80904ef1963b6e78 Mon Sep 17 00:00:00 2001
+From: rk <rokups@zoho.com>
+Date: Mon, 30 Dec 2024 14:13:16 +0200
+Subject: [PATCH] Custom SDL patches.
 
 ---
- CMakeLists.txt                                |  41 ++++++-
+ CMakeLists.txt                                |  42 ++++++-
  .../main/java/org/libsdl/app/SDLActivity.java |  31 ++++-
  include/SDL_config.h.cmake                    |   4 +
  include/SDL_cpuinfo.h                         |   8 +-
  include/SDL_gesture.h                         |   4 +
  include/SDL_surface.h                         |   5 +
  include/SDL_video.h                           |   5 +-
- include/begin_code.h                          |  18 +++
+ include/begin_code.h                          |  16 +++
  src/audio/arts/SDL_artsaudio.h                |   6 +-
  src/audio/emscripten/SDL_emscriptenaudio.c    |   2 +
  src/core/android/SDL_android.c                | 106 +++++++++++++++++-
@@ -38,23 +38,25 @@ Subject: [PATCH] Custom Urho3D/rbfx patches.
  src/video/winrt/SDL_winrtmouse.cpp            |  10 +-
  src/video/winrt/SDL_winrtvideo.cpp            |  18 ++-
  src/video/x11/SDL_x11keyboard.c               |   3 +-
- 34 files changed, 450 insertions(+), 43 deletions(-)
+ 34 files changed, 448 insertions(+), 44 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 6b5369937..30fd66060 100644
+index 6b536993..da70e841 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -3137,7 +3137,8 @@ if(SDL_STATIC)
-       "$<BUILD_INTERFACE:${SDL2_BINARY_DIR}/include>"
-       "$<BUILD_INTERFACE:${SDL2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>"
-       "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
--      "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/SDL2>")
-+      "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/SDL2>"
-+  )
-   # This picks up all the compiler options and such we've accumulated up to here.
-   target_link_libraries(SDL2-static PRIVATE $<BUILD_INTERFACE:sdl-build-options>)
+@@ -605,9 +605,9 @@ if(USE_GCC OR USE_CLANG)
    if(NOT ANDROID)
-@@ -3340,3 +3341,41 @@ set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} ${CMAKE_C_FLAGS}")
+     check_c_compiler_flag(-Wdeclaration-after-statement HAVE_GCC_WDECLARATION_AFTER_STATEMENT)
+     if(HAVE_GCC_WDECLARATION_AFTER_STATEMENT)
+-      check_c_compiler_flag(-Werror=declaration-after-statement HAVE_GCC_WERROR_DECLARATION_AFTER_STATEMENT)
++      check_c_compiler_flag(-Wno-error=declaration-after-statement HAVE_GCC_WERROR_DECLARATION_AFTER_STATEMENT)
+       if(HAVE_GCC_WERROR_DECLARATION_AFTER_STATEMENT)
+-        list(APPEND EXTRA_CFLAGS "-Werror=declaration-after-statement")
++        list(APPEND EXTRA_CFLAGS "-Wno-error=declaration-after-statement")
+       endif()
+       list(APPEND EXTRA_CFLAGS "-Wdeclaration-after-statement")
+     endif()
+@@ -3340,3 +3340,41 @@ set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} ${CMAKE_C_FLAGS}")
  if(TARGET SDL2::SDL2-static AND NOT TARGET SDL2::SDL2)
    add_library(SDL2::SDL2 ALIAS SDL2-static)
  endif()
@@ -97,7 +99,7 @@ index 6b5369937..30fd66060 100644
 +    target_sources(SDL2-static PRIVATE ${SDLMAIN_SOURCES})
 +endif ()
 diff --git a/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java b/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java
-index d982943a1..830ce09b2 100644
+index d982943a..830ce09b 100644
 --- a/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java
 +++ b/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java
 @@ -58,6 +58,9 @@ import android.widget.Toast;
@@ -205,7 +207,7 @@ index d982943a1..830ce09b2 100644
  }
 -
 diff --git a/include/SDL_config.h.cmake b/include/SDL_config.h.cmake
-index 2d21b37dd..1339f8993 100644
+index 2d21b37d..1339f899 100644
 --- a/include/SDL_config.h.cmake
 +++ b/include/SDL_config.h.cmake
 @@ -524,9 +524,13 @@
@@ -223,7 +225,7 @@ index 2d21b37dd..1339f8993 100644
  #cmakedefine SDL_VIDEO_VITA_PIB @SDL_VIDEO_VITA_PIB@
  #cmakedefine SDL_VIDEO_VITA_PVR @SDL_VIDEO_VITA_PVR@
 diff --git a/include/SDL_cpuinfo.h b/include/SDL_cpuinfo.h
-index 43a8ac501..799fc9dcc 100644
+index 43a8ac50..799fc9dc 100644
 --- a/include/SDL_cpuinfo.h
 +++ b/include/SDL_cpuinfo.h
 @@ -82,7 +82,7 @@ _m_prefetch(void *__P)
@@ -256,7 +258,7 @@ index 43a8ac501..799fc9dcc 100644
  /* Ends C function definitions when using C++ */
  #ifdef __cplusplus
 diff --git a/include/SDL_gesture.h b/include/SDL_gesture.h
-index e2caea2a9..72ee4a293 100644
+index e2caea2a..72ee4a29 100644
 --- a/include/SDL_gesture.h
 +++ b/include/SDL_gesture.h
 @@ -106,6 +106,10 @@ extern DECLSPEC int SDLCALL SDL_SaveDollarTemplate(SDL_GestureID gestureId,SDL_R
@@ -271,7 +273,7 @@ index e2caea2a9..72ee4a293 100644
  #ifdef __cplusplus
  }
 diff --git a/include/SDL_surface.h b/include/SDL_surface.h
-index 838de654e..52eccbe19 100644
+index 838de654..52eccbe1 100644
 --- a/include/SDL_surface.h
 +++ b/include/SDL_surface.h
 @@ -53,7 +53,12 @@ extern "C" {
@@ -288,7 +290,7 @@ index 838de654e..52eccbe19 100644
  
  /**
 diff --git a/include/SDL_video.h b/include/SDL_video.h
-index 0b1065dbb..6ad4334dd 100644
+index 0b1065db..6ad4334d 100644
 --- a/include/SDL_video.h
 +++ b/include/SDL_video.h
 @@ -796,9 +796,10 @@ extern DECLSPEC SDL_Window * SDLCALL SDL_CreateWindow(const char *title,
@@ -305,7 +307,7 @@ index 0b1065dbb..6ad4334dd 100644
  /**
   * Get the numeric ID of a window.
 diff --git a/include/begin_code.h b/include/begin_code.h
-index b3e69e85c..3c5d9df5c 100644
+index b3e69e85..81b65dd1 100644
 --- a/include/begin_code.h
 +++ b/include/begin_code.h
 @@ -49,7 +49,22 @@
@@ -331,7 +333,7 @@ index b3e69e85c..3c5d9df5c 100644
  #ifndef DECLSPEC
  # if defined(__WIN32__) || defined(__WINRT__) || defined(__CYGWIN__) || defined(__GDK__)
  #  ifdef DLL_EXPORT
-@@ -71,6 +88,7 @@
+@@ -71,6 +86,7 @@
  #  endif
  # endif
  #endif
@@ -340,7 +342,7 @@ index b3e69e85c..3c5d9df5c 100644
  /* By default SDL uses the C calling convention */
  #ifndef SDLCALL
 diff --git a/src/audio/arts/SDL_artsaudio.h b/src/audio/arts/SDL_artsaudio.h
-index 0f6e1693c..0c78588b5 100644
+index 0f6e1693..0c78588b 100644
 --- a/src/audio/arts/SDL_artsaudio.h
 +++ b/src/audio/arts/SDL_artsaudio.h
 @@ -18,12 +18,16 @@
@@ -362,7 +364,7 @@ index 0f6e1693c..0c78588b5 100644
  #include "../SDL_sysaudio.h"
  
 diff --git a/src/audio/emscripten/SDL_emscriptenaudio.c b/src/audio/emscripten/SDL_emscriptenaudio.c
-index bfe42821a..4ceb9f9ec 100644
+index bfe42821..4ceb9f9e 100644
 --- a/src/audio/emscripten/SDL_emscriptenaudio.c
 +++ b/src/audio/emscripten/SDL_emscriptenaudio.c
 @@ -33,6 +33,8 @@
@@ -375,7 +377,7 @@ index bfe42821a..4ceb9f9ec 100644
  FeedAudioDevice(_THIS, const void *buf, const int buflen)
  {
 diff --git a/src/core/android/SDL_android.c b/src/core/android/SDL_android.c
-index b0884eda8..ac90cc537 100644
+index b0884eda..ac90cc53 100644
 --- a/src/core/android/SDL_android.c
 +++ b/src/core/android/SDL_android.c
 @@ -369,6 +369,9 @@ static void Internal_Android_Destroy_AssetManager(void);
@@ -529,7 +531,7 @@ index b0884eda8..ac90cc537 100644
  {
      return Android_JNI_GetEnv();
 diff --git a/src/core/winrt/SDL_winrtapp_direct3d.cpp b/src/core/winrt/SDL_winrtapp_direct3d.cpp
-index 1f0962fca..700c41d69 100644
+index 1f0962fc..700c41d6 100644
 --- a/src/core/winrt/SDL_winrtapp_direct3d.cpp
 +++ b/src/core/winrt/SDL_winrtapp_direct3d.cpp
 @@ -24,7 +24,7 @@
@@ -542,7 +544,7 @@ index 1f0962fca..700c41d69 100644
  
  /* Windows includes */
 diff --git a/src/cpuinfo/SDL_cpuinfo.c b/src/cpuinfo/SDL_cpuinfo.c
-index 8221f7796..05da51f80 100644
+index 8221f779..05da51f8 100644
 --- a/src/cpuinfo/SDL_cpuinfo.c
 +++ b/src/cpuinfo/SDL_cpuinfo.c
 @@ -1097,6 +1097,15 @@ SDL_GetSystemRAM(void)
@@ -570,7 +572,7 @@ index 8221f7796..05da51f80 100644
  
  #ifdef TEST_MAIN
 diff --git a/src/dynapi/SDL_dynapi.h b/src/dynapi/SDL_dynapi.h
-index dc53e58b2..ebad8faac 100644
+index dc53e58b..ebad8faa 100644
 --- a/src/dynapi/SDL_dynapi.h
 +++ b/src/dynapi/SDL_dynapi.h
 @@ -69,7 +69,8 @@
@@ -584,7 +586,7 @@ index dc53e58b2..ebad8faac 100644
  
  #endif
 diff --git a/src/events/SDL_gesture.c b/src/events/SDL_gesture.c
-index 2cdb0d594..89d2d5446 100644
+index 2cdb0d59..89d2d544 100644
 --- a/src/events/SDL_gesture.c
 +++ b/src/events/SDL_gesture.c
 @@ -174,7 +174,8 @@ int SDL_SaveDollarTemplate(SDL_GestureID gestureId, SDL_RWops *dst)
@@ -652,7 +654,7 @@ index 2cdb0d594..89d2d5446 100644
  Returns the index of the gesture on success, or -1 */
  static int SDL_AddDollarGesture_one(SDL_GestureTouch* inTouch, SDL_FloatPoint* path)
 diff --git a/src/events/SDL_mouse.c b/src/events/SDL_mouse.c
-index ae85a0c1e..d543800e0 100644
+index ae85a0c1..d543800e 100644
 --- a/src/events/SDL_mouse.c
 +++ b/src/events/SDL_mouse.c
 @@ -929,6 +929,10 @@ SDL_PerformWarpMouseInWindow(SDL_Window *window, int x, int y, SDL_bool ignore_r
@@ -667,7 +669,7 @@ index ae85a0c1e..d543800e0 100644
  
  void
 diff --git a/src/filesystem/winrt/SDL_sysfilesystem.cpp b/src/filesystem/winrt/SDL_sysfilesystem.cpp
-index 115b45b1a..3f90244e1 100644
+index 115b45b1..3f90244e 100644
 --- a/src/filesystem/winrt/SDL_sysfilesystem.cpp
 +++ b/src/filesystem/winrt/SDL_sysfilesystem.cpp
 @@ -37,7 +37,7 @@ extern "C" {
@@ -725,7 +727,7 @@ index 115b45b1a..3f90244e1 100644
  
      UTF8PathMap::iterator searchResult = utf8Paths.find(pathType);
 diff --git a/src/joystick/SDL_joystick.c b/src/joystick/SDL_joystick.c
-index 26b017bb9..01e164c28 100644
+index 26b017bb..01e164c2 100644
 --- a/src/joystick/SDL_joystick.c
 +++ b/src/joystick/SDL_joystick.c
 @@ -2309,9 +2309,11 @@ static SDL_bool SDL_IsJoystickProductArcadeStick(Uint32 vidpid)
@@ -742,7 +744,7 @@ index 26b017bb9..01e164c28 100644
      int i;
  
 diff --git a/src/joystick/emscripten/SDL_sysjoystick.c b/src/joystick/emscripten/SDL_sysjoystick.c
-index 1664a907c..62335dbdf 100644
+index 1664a907..62335dbd 100644
 --- a/src/joystick/emscripten/SDL_sysjoystick.c
 +++ b/src/joystick/emscripten/SDL_sysjoystick.c
 @@ -186,6 +186,12 @@ EMSCRIPTEN_JoystickInit(void)
@@ -759,7 +761,7 @@ index 1664a907c..62335dbdf 100644
  
      retval = emscripten_sample_gamepad_data();
 diff --git a/src/sensor/android/SDL_androidsensor.c b/src/sensor/android/SDL_androidsensor.c
-index e6cfc2302..9484857df 100644
+index e6cfc230..9484857d 100644
 --- a/src/sensor/android/SDL_androidsensor.c
 +++ b/src/sensor/android/SDL_androidsensor.c
 @@ -171,7 +171,7 @@ SDL_ANDROID_SensorUpdate(SDL_Sensor *sensor)
@@ -772,7 +774,7 @@ index e6cfc2302..9484857df 100644
          while (ASensorEventQueue_getEvents(sensor->hwdata->eventqueue, &event, 1) > 0) {
              SDL_PrivateSensorUpdate(sensor, event.data, SDL_arraysize(event.data));
 diff --git a/src/video/SDL_egl.c b/src/video/SDL_egl.c
-index c768b9914..1aa905496 100644
+index c768b991..1aa90549 100644
 --- a/src/video/SDL_egl.c
 +++ b/src/video/SDL_egl.c
 @@ -1291,6 +1291,13 @@ SDL_EGL_DestroySurface(_THIS, EGLSurface egl_surface)
@@ -790,7 +792,7 @@ index c768b9914..1aa905496 100644
  
  /* vi: set ts=4 sw=4 expandtab: */
 diff --git a/src/video/SDL_video.c b/src/video/SDL_video.c
-index 21c516265..dfe9451b7 100644
+index 21c51626..dfe9451b 100644
 --- a/src/video/SDL_video.c
 +++ b/src/video/SDL_video.c
 @@ -1773,11 +1773,12 @@ SDL_CreateWindow(const char *title, int x, int y, int w, int h, Uint32 flags)
@@ -827,7 +829,7 @@ index 21c516265..dfe9451b7 100644
          SDL_DestroyWindow(window);
          return NULL;
 diff --git a/src/video/android/SDL_androidevents.c b/src/video/android/SDL_androidevents.c
-index 3424a8254..a05596156 100644
+index 3424a825..a0559615 100644
 --- a/src/video/android/SDL_androidevents.c
 +++ b/src/video/android/SDL_androidevents.c
 @@ -74,12 +74,15 @@ android_egl_context_restore(SDL_Window *window)
@@ -850,7 +852,7 @@ index 3424a8254..a05596156 100644
          data->backup_done = 0;
      }
 diff --git a/src/video/android/SDL_androidvideo.c b/src/video/android/SDL_androidvideo.c
-index cf8a526e2..720b0f2cf 100644
+index cf8a526e..720b0f2c 100644
 --- a/src/video/android/SDL_androidvideo.c
 +++ b/src/video/android/SDL_androidvideo.c
 @@ -192,6 +192,31 @@ Android_VideoInit(_THIS)
@@ -886,7 +888,7 @@ index cf8a526e2..720b0f2cf 100644
      if (display_index < 0) {
          return -1;
 diff --git a/src/video/cocoa/SDL_cocoawindow.m b/src/video/cocoa/SDL_cocoawindow.m
-index ad7d9e2af..13525761f 100644
+index ad7d9e2a..13525761 100644
 --- a/src/video/cocoa/SDL_cocoawindow.m
 +++ b/src/video/cocoa/SDL_cocoawindow.m
 @@ -1479,7 +1479,9 @@ Cocoa_SendMouseButtonClicks(SDL_Mouse * mouse, NSEvent *theEvent, SDL_Window * w
@@ -910,7 +912,7 @@ index ad7d9e2af..13525761f 100644
  }
  
 diff --git a/src/video/haiku/SDL_bkeyboard.h b/src/video/haiku/SDL_bkeyboard.h
-index 4c2a5903a..8a56f7659 100644
+index 4c2a5903..8a56f765 100644
 --- a/src/video/haiku/SDL_bkeyboard.h
 +++ b/src/video/haiku/SDL_bkeyboard.h
 @@ -28,7 +28,7 @@
@@ -923,7 +925,7 @@ index 4c2a5903a..8a56f7659 100644
  extern void HAIKU_InitOSKeymap(void);
  extern SDL_Scancode HAIKU_GetScancodeFromBeKey(int32 bkey);
 diff --git a/src/video/uikit/SDL_uikitappdelegate.m b/src/video/uikit/SDL_uikitappdelegate.m
-index 4c21d7336..6cc51fd2a 100644
+index 4c21d733..6cc51fd2 100644
 --- a/src/video/uikit/SDL_uikitappdelegate.m
 +++ b/src/video/uikit/SDL_uikitappdelegate.m
 @@ -42,6 +42,10 @@ static int forward_argc;
@@ -990,7 +992,7 @@ index 4c21d7336..6cc51fd2a 100644
  SDL_IdleTimerDisabledChanged(void *userdata, const char *name, const char *oldValue, const char *hint)
  {
 diff --git a/src/video/windows/SDL_windowsevents.c b/src/video/windows/SDL_windowsevents.c
-index e2b95ad4e..29127fb28 100644
+index e2b95ad4..29127fb2 100644
 --- a/src/video/windows/SDL_windowsevents.c
 +++ b/src/video/windows/SDL_windowsevents.c
 @@ -769,7 +769,13 @@ WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -1009,7 +1011,7 @@ index e2b95ad4e..29127fb28 100644
                  if (GetMouseMessageSource() != SDL_MOUSE_EVENT_SOURCE_TOUCH &&
                      lParam != data->last_pointer_update) {
 diff --git a/src/video/windows/SDL_windowskeyboard.c b/src/video/windows/SDL_windowskeyboard.c
-index 0f0402b90..29cab31b0 100644
+index 0f0402b9..29cab31b 100644
 --- a/src/video/windows/SDL_windowskeyboard.c
 +++ b/src/video/windows/SDL_windowskeyboard.c
 @@ -1034,6 +1034,9 @@ IME_HandleMessage(HWND hwnd, UINT msg, WPARAM wParam, LPARAM *lParam, SDL_VideoD
@@ -1023,7 +1025,7 @@ index 0f0402b90..29cab31b0 100644
          if (*lParam & GCS_COMPSTR) {
              if (!videodata->ime_uiless)
 diff --git a/src/video/windows/SDL_windowsmouse.c b/src/video/windows/SDL_windowsmouse.c
-index a52c44079..2b4ba6fa5 100644
+index a52c4407..2b4ba6fa 100644
 --- a/src/video/windows/SDL_windowsmouse.c
 +++ b/src/video/windows/SDL_windowsmouse.c
 @@ -272,9 +272,10 @@ WIN_WarpMouse(SDL_Window * window, int x, int y)
@@ -1041,7 +1043,7 @@ index a52c44079..2b4ba6fa5 100644
      pt.x = x;
      pt.y = y;
 diff --git a/src/video/windows/SDL_windowswindow.c b/src/video/windows/SDL_windowswindow.c
-index eb536bbe4..796fd0d68 100644
+index eb536bbe..796fd0d6 100644
 --- a/src/video/windows/SDL_windowswindow.c
 +++ b/src/video/windows/SDL_windowswindow.c
 @@ -600,6 +600,13 @@ WIN_CreateWindowFrom(_THIS, SDL_Window * window, const void *data)
@@ -1059,7 +1061,7 @@ index eb536bbe4..796fd0d68 100644
      {
          const char *hint = SDL_GetHint(SDL_HINT_VIDEO_WINDOW_SHARE_PIXEL_FORMAT);
 diff --git a/src/video/winrt/SDL_winrtmouse.cpp b/src/video/winrt/SDL_winrtmouse.cpp
-index 8c32e5fcf..bbe398037 100644
+index 8c32e5fc..bbe39803 100644
 --- a/src/video/winrt/SDL_winrtmouse.cpp
 +++ b/src/video/winrt/SDL_winrtmouse.cpp
 @@ -189,6 +189,14 @@ WINRT_SetRelativeMouseMode(SDL_bool enabled)
@@ -1087,7 +1089,7 @@ index 8c32e5fcf..bbe398037 100644
  
      SDL_SetDefaultCursor(WINRT_CreateDefaultCursor());
 diff --git a/src/video/winrt/SDL_winrtvideo.cpp b/src/video/winrt/SDL_winrtvideo.cpp
-index a71ba9b07..f89272a2a 100644
+index a71ba9b0..f89272a2 100644
 --- a/src/video/winrt/SDL_winrtvideo.cpp
 +++ b/src/video/winrt/SDL_winrtvideo.cpp
 @@ -32,7 +32,7 @@
@@ -1123,7 +1125,7 @@ index a71ba9b07..f89272a2a 100644
  static void
  WINRT_DXGIModeToSDLDisplayMode(const DXGI_MODE_DESC * dxgiMode, SDL_DisplayMode * sdlMode)
 diff --git a/src/video/x11/SDL_x11keyboard.c b/src/video/x11/SDL_x11keyboard.c
-index c14e13d1c..ecad00d77 100644
+index c14e13d1..ecad00d7 100644
 --- a/src/video/x11/SDL_x11keyboard.c
 +++ b/src/video/x11/SDL_x11keyboard.c
 @@ -289,7 +289,8 @@ X11_InitKeyboard(_THIS)
@@ -1137,5 +1139,5 @@ index c14e13d1c..ecad00d77 100644
          SDL_bool has_dbus_ime_support = SDL_FALSE;
  
 -- 
-2.41.0.windows.3
+2.45.0
 
