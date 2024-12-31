@@ -92,6 +92,13 @@ CPMAddPackageCached(
 list(APPEND RBFX_DLL_EXPORT_DEFINES "-DSDL_EXPORTS=1")
 list(APPEND RBFX_DLL_IMPORT_DEFINES "-DSDL_IMPORTS=1")
 
+# Help gradle build script to find required java source code.
+if (ANDROID)
+    file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/SDL/android-project)
+    file(COPY ${SDL2_SOURCE_DIR}/android-project DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/SDL)
+    file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/SDL/android-project/.gitignore "*")
+endif ()
+
 add_subdirectory(ETCPACK)
 
 if (NOT WEB)

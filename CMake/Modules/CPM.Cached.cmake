@@ -32,6 +32,20 @@ get_filename_component(CPM_BINARY_CACHE_DIR_DEFAULT ${CPM_BINARY_CACHE_DIR_DEFAU
 
 set(CPM_BINARY_CACHE_DIR      "${CPM_BINARY_CACHE_DIR_DEFAULT}" CACHE PATH   "The directory where the cached packages are stored")
 set(CPM_BINARY_CACHE_USE_VARS "$ENV{CPM_BINARY_CACHE_USE_VARS}" CACHE STRING "Forward these variables to the dependency build generation")
+set(BUILD_CRITICAL_VARIABLES
+    PLATFORM
+    DEPLOYMENT_TARGET
+    EMSCRIPTEN_ROOT_PATH
+    CMAKE_OSX_ARCHITECTURES
+    CMAKE_SYSTEM_NAME
+    CMAKE_SYSTEM_VERSION
+    ANDROID_STL
+    ANDROID_PLATFORM
+    ANDROID_ABI
+    CMAKE_TOOLCHAIN_FILE
+    CMAKE_GENERATOR
+    CMAKE_GENERATOR_PLATFORM
+)
 
 # Define source code cache inside our binary cache directory.
 if (NOT CPM_SOURCE_CACHE)
@@ -90,7 +104,7 @@ function(cmp_cache_package_hash out)
     list(APPEND hashable_args is_multi_config=${is_multi_config})
 
     # Hash other relevant variables
-    foreach (arg CMAKE_SYSTEM_NAME CMAKE_SYSTEM_VERSION CMAKE_SIZEOF_VOID_P)
+    foreach (arg ${BUILD_CRITICAL_VARIABLES} CMAKE_SIZEOF_VOID_P)
         list(APPEND hashable_args ${arg}=${${arg}})
     endforeach ()
 
@@ -185,7 +199,7 @@ function(CPMAddPackageCached)
             endif ()
 
             # Forward arguments that define build environment to the dependency generator.
-            foreach(arg BUILD_SHARED_LIBS CMAKE_TOOLCHAIN_FILE CMAKE_GENERATOR CMAKE_GENERATOR_PLATFORM CMAKE_SYSTEM_NAME CMAKE_SYSTEM_VERSION ${CPM_BINARY_CACHE_USE_VARS})
+            foreach(arg BUILD_SHARED_LIBS ${BUILD_CRITICAL_VARIABLES} ${CPM_BINARY_CACHE_USE_VARS})
                 if (DEFINED ${arg})
                     list(APPEND extra_configure_args -D${arg}=${${arg}})
                 endif()
@@ -253,4 +267,7 @@ function(CPMAddPackageCached)
         set(filename "${CMAKE_BINARY_DIR}/CPM_modules/Find${CPM_ARGS_NAME}.cmake")
         file(WRITE "${filename}" "find_package(${CPM_ARGS_NAME} CONFIG PATHS \"${package_cached_path}\" NO_DEFAULT_PATH)\n")
     endif ()
+
+    set(${CPM_ARGS_NAME}_SOURCE_DIR ${${CPM_ARGS_NAME}_SOURCE_DIR} PARENT_SCOPE)
+    set(${CPM_ARGS_NAME}_BINARY_DIR ${${CPM_ARGS_NAME}_BINARY_DIR} PARENT_SCOPE)
 endfunction()
