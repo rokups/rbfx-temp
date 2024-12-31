@@ -75,10 +75,6 @@ CPMAddPackageCached(
   GIT_TAG release-2.24.0
   EXCLUDE_FROM_ALL ON
   OPTIONS "BUILD_SHARED_LIBS OFF"
-          "IOS ${IOS}"
-          "UWP ${UWP}"
-          "ANDROID ${ANDROID}"
-          "WEB ${WEB}"
           "SDL_RENDER_D3D OFF"
           "SDL_RENDER_METAL OFF"
           "SDL_TEST OFF"
