@@ -2,6 +2,34 @@
     "version": 6,
     "configurePresets": [
         {
+            "name": "MSVC",
+            "displayName": "",
+            "binaryDir": "${sourceDir}/cmake-build/MSVC",
+            "installDir": "${sourceDir}/cmake-build/MSVC-install",
+            //"toolchainFile": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            //"environment": {
+            //    "_CL_": "/D_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS=1"
+            //},
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_SHARED_LIBS": "ON",
+                "URHO3D_ENABLE_ALL": "ON",
+                "URHO3D_SAMPLES": "ON",
+                "URHO3D_CSHARP": "OFF",
+                "URHO3D_RMLUI": "ON",
+                "URHO3D_NAVIGATION": "ON",
+                "URHO3D_NETWORK": "ON",
+                "URHO3D_SYSTEMUI": "OFF",
+                "URHO3D_NETFX": "net8.0",
+                "URHO3D_PARALLEL_BUILD": "16",
+                "URHO3D_NETFX_RUNTIME_VERSION": "8.0",
+                "URHO3D_SWIG_DEBUG_TMSEARCH": "ON",
+                "URHO3D_TESTING": "ON",
+                "URHO3D_XR": "OFF",
+                //"VCPKG_TARGET_TRIPLET": "x64-windows"
+            }
+        },
+        {
             "name": "MSVC-0",
             "displayName": "",
             "binaryDir": "${sourceDir}/cmake-build/MSVC-0",
@@ -9,7 +37,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "BUILD_SHARED_LIBS": "ON",
-                "URHO3D_ENABLE_ALL": "OFF"
+                "URHO3D_ENABLE_ALL": "ON"
             },
             "environment": {
                 "CPM_BINARY_CACHE_DISABLED": "0"
@@ -23,7 +51,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "BUILD_SHARED_LIBS": "ON",
-                "URHO3D_ENABLE_ALL": "OFF"
+                "URHO3D_ENABLE_ALL": "ON"
             },
             "environment": {
                 "CPM_BINARY_CACHE_DISABLED": "0"
@@ -37,11 +65,105 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "BUILD_SHARED_LIBS": "ON",
-                "URHO3D_ENABLE_ALL": "OFF"
+                "URHO3D_ENABLE_ALL": "ON"
             },
             "environment": {
                 "CPM_BINARY_CACHE_DISABLED": "1"
             }
+        },
+        {
+            "name": "UWP",
+            "displayName": "",
+            "binaryDir": "${sourceDir}/cmake-build/UWP",
+            "installDir": "${sourceDir}/cmake-build/UWP/install",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "URHO3D_ENABLE_ALL": "ON",
+                "URHO3D_EDITOR": "ON",
+                "URHO3D_CSHARP": "OFF",
+                "URHO3D_SAMPLES": "ON",
+                "URHO3D_PLUGIN_LIST": "",
+                "URHO3D_NETFX": "netstandard2.0",
+                "CMAKE_SYSTEM_NAME": "WindowsStore",
+                "CMAKE_SYSTEM_VERSION": "10.0",
+                "URHO3D_SDK": "${sourceDir}/cmake-build/MSVC-0-install",
+                "URHO3D_PARALLEL_BUILD": "16",
+                "URHO3D_TESTING": "ON",
+                "URHO3D_SWIG_DEBUG_TMSEARCH": "ON",
+                "CMAKE_GENERATOR_PLATFORM": "x64"
+            },
+            "environment": {
+                "_CL_": "/D_SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS=1"
+            }
+        },
+        {
+            "name": "Desktop-Linux-Debug",
+            "description": "Debug",
+            "displayName": "",
+            "binaryDir": "/home/rk/rbfx-build",
+            "installDir": "/home/rk/rbfx-build/install",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_SHARED_LIBS": "ON",
+                "URHO3D_THREADING": "ON",
+                "URHO3D_ENABLE_ALL": "ON",
+                "URHO3D_SAMPLES": "ON",
+                "URHO3D_TOOLS": "ON",
+                "URHO3D_CSHARP": "OFF",
+                "URHO3D_PACKAGING": "ON",
+                "URHO3D_TESTING": "ON",
+                "URHO3D_NETFX": "net7.0",
+                "URHO3D_NETFX_RUNTIME_VERSION": "7.0"
+            }
+        },
+        {
+            "name": "Web-RelWithDebInfo",
+            "description": "RelWithDebInfo",
+            "displayName": "",
+            "binaryDir": "${sourceDir}/cmake-build/${hostSystemName}-Web-RelWithDebInfo",
+            "installDir": "${sourceDir}/cmake-build/${hostSystemName}-Web-RelWithDebInfo/install",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_MAKE_PROGRAM": "C:/Users/rk/AppData/Local/Microsoft/WinGet/Packages/Ninja-build.Ninja_Microsoft.Winget.Source_8wekyb3d8bbwe/ninja.exe",
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "URHO3D_SDK": "${sourceDir}/cmake-build/MSVC-0-install",
+                "BUILD_SHARED_LIBS": "OFF",
+                "URHO3D_SAMPLES": "ON",
+                "CMAKE_TOOLCHAIN_FILE": "C:/Home/source/tools/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+                "EMSCRIPTEN_ROOT_PATH": "C:/Home/source/tools/emsdk/upstream/emscripten"
+            }
+        },
+        {
+            "name": "Tools",
+            "displayName": "",
+            "binaryDir": "${sourceDir}/cmake-build/${hostSystemName}-Tools",
+            "installDir": "${sourceDir}/cmake-build/${hostSystemName}-Tools/install",
+            "architecture": "x64",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "URHO3D_GRAPHICS_API": "OpenGL",
+                "URHO3D_ENABLE_ALL": "OFF",
+                "URHO3D_SHADER_TRANSLATOR": "OFF",
+                "URHO3D_SHADER_OPTIMIZER": "OFF",
+                "URHO3D_SYSTEMUI": "OFF",
+                "URHO3D_HASH_DEBUG": "OFF",
+                "URHO3D_TOOLS": "swig;PackageTool"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "RelWithDebInfo",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "Release",
+            "configuration": "Release"
         }
     ]
 }
