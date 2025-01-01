@@ -60,8 +60,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    tasks.named('sourceSets') {
-        dependsOn 'configureCMakeDebug'
+    tasks.named('compileReleaseJavaWithJavac') {
+        dependsOn 'externalNativeBuildRelease'
+    }
+    tasks.named('compileDebugJavaWithJavac') {
+        dependsOn 'externalNativeBuildDebug'
     }
 }
 
