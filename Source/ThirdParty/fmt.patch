@@ -1,22 +1,30 @@
-From 5f9517979639a2ce379f2633092e5eeeb0b64cd3 Mon Sep 17 00:00:00 2001
+From 60855f96a7eea5a9325abcc2cac13a6d7e682ac3 Mon Sep 17 00:00:00 2001
 From: rk <rokups@zoho.com>
-Date: Wed, 1 Jan 2025 11:19:58 +0200
+Date: Wed, 1 Jan 2025 13:39:47 +0200
 Subject: [PATCH] Custom patches.
 
 ---
- CMakeLists.txt | 4 ++++
- 1 file changed, 4 insertions(+)
+ CMakeLists.txt | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 4b928ae..ab3c164 100644
+index 4b928ae..af8433c 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -290,6 +290,10 @@ if (FMT_MODULE)
+@@ -290,6 +290,18 @@ if (FMT_MODULE)
    enable_module(fmt)
  endif ()
  
 +if (EMSCRIPTEN)
 +	target_compile_options(fmt PRIVATE -sUSE_PTHREADS=1 -pthread)
++endif ()
++
++if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
++    target_compile_options(fmt PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-frtti>)
++elseif (MSVC)
++    if (NOT " /GR " MATCHES CMAKE_CXX_FLAGS)
++        target_compile_options(fmt PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/GR>)
++    endif ()
 +endif ()
 +
  if (FMT_WERROR)

@@ -393,7 +393,7 @@ if (GNU OR Clang)
     target_compile_options(Urho3D PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-frtti>)
 elseif (MSVC)
     # Enable RTTI
-    if (NOT /GR IN_LIST CMAKE_CXX_FLAGS)
+    if (NOT " /GR " MATCHES CMAKE_CXX_FLAGS)
         target_compile_options(Urho3D PUBLIC $<$<COMPILE_LANGUAGE:CXX>:/GR>)
     endif ()
 endif ()
