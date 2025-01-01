@@ -1,0 +1,27 @@
+From 87c183107357d74d7423a85892b5a00987e8abf6 Mon Sep 17 00:00:00 2001
+From: rk <rokups@zoho.com>
+Date: Wed, 1 Jan 2025 11:22:14 +0200
+Subject: [PATCH] Custom patches.
+
+---
+ CMakeLists.txt | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d4b3c1b..94b58d4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -172,6 +172,10 @@ endif()
+ 
+ add_library(spdlog::spdlog ALIAS spdlog)
+ 
++if (EMSCRIPTEN)
++	target_compile_options(spdlog PRIVATE -sUSE_PTHREADS=1 -pthread)
++endif ()
++
+ set(SPDLOG_INCLUDES_LEVEL "")
+ if(SPDLOG_SYSTEM_INCLUDES)
+     set(SPDLOG_INCLUDES_LEVEL "SYSTEM")
+-- 
+2.45.0
+

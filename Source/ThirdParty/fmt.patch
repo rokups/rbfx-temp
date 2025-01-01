@@ -1,0 +1,27 @@
+From 5f9517979639a2ce379f2633092e5eeeb0b64cd3 Mon Sep 17 00:00:00 2001
+From: rk <rokups@zoho.com>
+Date: Wed, 1 Jan 2025 11:19:58 +0200
+Subject: [PATCH] Custom patches.
+
+---
+ CMakeLists.txt | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4b928ae..ab3c164 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -290,6 +290,10 @@ if (FMT_MODULE)
+   enable_module(fmt)
+ endif ()
+ 
++if (EMSCRIPTEN)
++	target_compile_options(fmt PRIVATE -sUSE_PTHREADS=1 -pthread)
++endif ()
++
+ if (FMT_WERROR)
+   target_compile_options(fmt PRIVATE ${WERROR_FLAG})
+ endif ()
+-- 
+2.45.0
+
