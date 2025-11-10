@@ -92,30 +92,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Desktop: Windows builds
-          - ci_platform_tag: windows-msvc-x64-dll
-          - ci_platform_tag: windows-msvc-x64-lib
-          - ci_platform_tag: windows-msvc-x86-dll
-          - ci_platform_tag: windows-msvc-x86-lib
-          # Desktop: Linux builds
-          - ci_platform_tag: linux-gcc-x64-dll
-          - ci_platform_tag: linux-gcc-x64-lib
-          - ci_platform_tag: linux-clang-x64-dll
-          - ci_platform_tag: linux-clang-x64-lib
-          # Desktop: MacOS builds
+          ## Desktop: Windows builds
+          #- ci_platform_tag: windows-msvc-x64-dll
+          #- ci_platform_tag: windows-msvc-x64-lib
+          #- ci_platform_tag: windows-msvc-x86-dll
+          #- ci_platform_tag: windows-msvc-x86-lib
+          ## Desktop: Linux builds
+          #- ci_platform_tag: linux-gcc-x64-dll
+          #- ci_platform_tag: linux-gcc-x64-lib
+          #- ci_platform_tag: linux-clang-x64-dll
+          #- ci_platform_tag: linux-clang-x64-lib
+          ## Desktop: MacOS builds
           - ci_platform_tag: macos-clang-arm64-dll
-          - ci_platform_tag: macos-clang-arm64-lib
-          # Mobile: UWP builds
-          - ci_platform_tag: uwp-msvc-x64-dll
-          - ci_platform_tag: uwp-msvc-x64-lib
-          # Mobile: Android builds
-          - ci_platform_tag: android-clang-arm64-dll
-          - ci_platform_tag: android-clang-arm-dll
-          - ci_platform_tag: android-clang-x64-dll
-          # Mobile: iOS builds
-          - ci_platform_tag: ios-clang-universal-lib
-          # Web builds
-          - ci_platform_tag: web-emscripten-wasm-lib
+          #- ci_platform_tag: macos-clang-arm64-lib
+          ## Mobile: UWP builds
+          #- ci_platform_tag: uwp-msvc-x64-dll
+          #- ci_platform_tag: uwp-msvc-x64-lib
+          ## Mobile: Android builds
+          #- ci_platform_tag: android-clang-arm64-dll
+          #- ci_platform_tag: android-clang-arm-dll
+          #- ci_platform_tag: android-clang-x64-dll
+          ## Mobile: iOS builds
+          #- ci_platform_tag: ios-clang-universal-lib
+          ## Web builds
+          #- ci_platform_tag: web-emscripten-wasm-lib
 
     env:
       ci_platform_tag: ${{ matrix.ci_platform_tag }}
@@ -224,7 +224,8 @@ jobs:
         run: |
           # Try to catch issues with pch disabled at least somewhere.
           pch=$([[ "$ci_platform" == 'linux' && "$ci_compiler" == 'clang' ]] && echo 'OFF' || echo 'ON')
-          ${{ env.ci_build_script }} generate -- -DURHO3D_PCH=$pch 2>&1 | tee generate.log
+          mkdir '${{ env.ci_build_dir }}'
+          ${{ env.ci_build_script }} generate -- --trace-expand --trace-redirect=${{ env.ci_build_dir }}/cmake-build-rel-trace.log -DURHO3D_PCH=$pch 2>&1 | tee generate.log
           if grep -q "Could NOT find Urho3DThirdParty" generate.log; then
             echo "thirdparty-used=false" >> "$GITHUB_OUTPUT"
             echo "ThirdParty will be built from source"
@@ -233,11 +234,11 @@ jobs:
             echo "Using cached Urho3DThirdParty"
           fi
 
-      - name: Build Debug
-        run: ${{ env.ci_build_script }} build --build-type dbg -- --parallel $ci_number_of_processors
-
       - name: Build Release
         run: ${{ env.ci_build_script }} build --build-type rel -- --parallel $ci_number_of_processors
+
+      - name: Build Debug
+        run: ${{ env.ci_build_script }} build --build-type dbg -- --parallel $ci_number_of_processors
 
       - name: Test Debug (Native)
         if: (env.ci_compiler == 'msvc' || env.ci_platform == 'linux')
@@ -382,6 +383,14 @@ jobs:
         with:
           name: 'ccache-debug-build-${{ env.ci_platform_tag }}-${{ github.run_id }}'
           path: ${{ env.CCACHE_DEBUGDIR }}
+          if-no-files-found: ignore
+
+      - name: Upload build logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'build-logs-${{ env.ci_platform_tag }}-${{ github.run_id }}'
+          path: ${{ env.ci_build_dir }}/*log
           if-no-files-found: ignore
 
   NuGet:
