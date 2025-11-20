@@ -281,17 +281,18 @@ foreach (dep ${PUBLIC_THIRD_PARTY_DEPENDENCIES})
             foreach(include_dir ${VALUE})
                 # Check if this is an absolute path that starts with a prefix from CMAKE_PREFIX_PATH
                 set(FOUND_PREFIX FALSE)
-                foreach(prefix ${CMAKE_PREFIX_PATH})
+                foreach(prefix ${Urho3DThirdParty_INCLUDE_DIRS})
                     if(prefix)
                         # Normalize the prefix path
                         get_filename_component(prefix "${prefix}" ABSOLUTE)
-                        # Check if include_dir starts with prefix/include
-                        string(FIND "${include_dir}" "${prefix}/${CMAKE_INSTALL_INCLUDEDIR}" PREFIX_POS)
+                        message("Processing: ${include_dir} <- ${prefix}")
+                        # Check if include_dir starts with prefix
+                        string(FIND "${include_dir}" "${prefix}" PREFIX_POS)
                         if(PREFIX_POS EQUAL 0)
                             # This include path is under a prefix, handle it specially
                             # For BUILD_INTERFACE, use the absolute path
                             # For INSTALL_INTERFACE, remove the prefix
-                            string(REPLACE "${prefix}/" "" RELATIVE_INCLUDE "${include_dir}")
+                            string(REPLACE "${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}" RELATIVE_INCLUDE "${include_dir}")
                             list(APPEND PROCESSED_INCLUDES
                                 "$<BUILD_INTERFACE:${include_dir}>"
                                 "$<INSTALL_INTERFACE:${RELATIVE_INCLUDE}>")
