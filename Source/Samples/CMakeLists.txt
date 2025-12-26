@@ -31,7 +31,7 @@ endif ()
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Samples)
 
 ## Add samples
-file (GLOB_RECURSE DIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CMakeLists.txt)
+file (GLOB_RECURSE DIRS CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CMakeLists.txt)
 list (SORT DIRS)
 foreach (DIR ${DIRS})
     get_filename_component (DIR ${DIR} PATH)

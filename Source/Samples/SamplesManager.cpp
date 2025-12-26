@@ -158,6 +158,7 @@
 #endif
 #include "121_CameraOperator/CameraOperator.h"
 #include "122_TextureFormats/TextureFormats.h"
+#include "123_CsgShowcase/CsgShowcase.h"
 
 #include "Rotator.h"
 
@@ -421,6 +422,7 @@ void SamplesManager::Start()
 #endif
     RegisterSample<CameraOperatorSample>();
     RegisterSample<TextureFormatsSample>();
+    RegisterSample<CsgShowcase>();
 
 #if URHO3D_OCULUS_QUEST
     StartSample(HelloVR::GetTypeStatic());

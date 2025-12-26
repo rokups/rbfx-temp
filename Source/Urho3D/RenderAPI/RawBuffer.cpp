@@ -6,6 +6,7 @@
 
 #include "Urho3D/RenderAPI/RawBuffer.h"
 
+#include "Urho3D/Core/Thread.h"
 #include "Urho3D/IO/Log.h"
 #include "Urho3D/RenderAPI/RenderDevice.h"
 #include "Urho3D/RenderAPI/RenderPool.h"
@@ -43,6 +44,7 @@ void RawBuffer::Invalidate()
 
 void RawBuffer::Restore()
 {
+    URHO3D_ASSERT(Thread::IsMainThread());
     URHO3D_ASSERT(!IsLocked());
 
     if (params_.size_ == 0)
@@ -72,6 +74,7 @@ void RawBuffer::Restore()
 
 void RawBuffer::Destroy()
 {
+    URHO3D_ASSERT(Thread::IsMainThread());
     URHO3D_ASSERT(!IsLocked());
 
     handle_ = nullptr;
@@ -80,6 +83,7 @@ void RawBuffer::Destroy()
 
 bool RawBuffer::Create(const RawBufferParams& params, const void* data)
 {
+    URHO3D_ASSERT(Thread::IsMainThread());
     Destroy();
 
     params_ = params;
@@ -160,6 +164,7 @@ bool RawBuffer::Create(const RawBufferParams& params, const void* data)
 
 bool RawBuffer::CreateGPU(const void* data)
 {
+    URHO3D_ASSERT(Thread::IsMainThread());
     static const EnumArray<Diligent::BIND_FLAGS, BufferType> bufferTypeToBindFlag{{
         Diligent::BIND_VERTEX_BUFFER,
         Diligent::BIND_INDEX_BUFFER,
@@ -215,6 +220,7 @@ void RawBuffer::Update(const void* data, unsigned size)
 
 void RawBuffer::UpdateRange(const void* data, unsigned offset, unsigned size)
 {
+    URHO3D_ASSERT(Thread::IsMainThread());
     URHO3D_ASSERT(!IsLocked());
     URHO3D_ASSERT(data || size == 0, "Data must not be null");
     URHO3D_ASSERT(offset + size <= params_.size_, "Range must be within buffer size");
@@ -269,6 +275,7 @@ void RawBuffer::UpdateRange(const void* data, unsigned offset, unsigned size)
 
 void* RawBuffer::Map()
 {
+    URHO3D_ASSERT(Thread::IsMainThread());
     URHO3D_ASSERT(!IsLocked());
 
     if (params_.size_ == 0)
@@ -312,6 +319,7 @@ void* RawBuffer::Map()
 
 void RawBuffer::Unmap()
 {
+    URHO3D_ASSERT(Thread::IsMainThread());
     URHO3D_ASSERT(IsLocked());
     auto callback = ea::move(unlockImpl_);
     unlockImpl_ = nullptr;

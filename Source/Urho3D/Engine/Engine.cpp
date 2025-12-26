@@ -29,6 +29,7 @@
 #include "../Core/ProcessUtils.h"
 #include "../Core/Thread.h"
 #include "../Core/WorkQueue.h"
+#include "../CSG/Csg.h"
 #ifdef URHO3D_SYSTEMUI
 #include "../SystemUI/SystemUI.h"
 #include "../SystemUI/Console.h"
@@ -308,6 +309,8 @@ Engine::Engine(Context* context) :
 #ifdef URHO3D_XR
     RegisterVRLibrary(context_);
 #endif
+
+    RegisterCsgLibrary(context_);
 
     RegisterUtilityLibrary(context_);
 
