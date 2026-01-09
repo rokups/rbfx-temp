@@ -44,8 +44,7 @@ static SharedPtr<Model> ComputeCsgModel(Context* context,
     const Model* bModel, const ResourceRefList& bMaterials, const Matrix3x4& bWorld,
     CsgOperation op,
     ResourceRefList* outMaterials = nullptr,
-    float epsilon = CSG_DEFAULT_EPSILON,
-    ModelViewExportFlags exportFlags = ModelViewExportFlag::None)
+    float epsilon = CSG_DEFAULT_EPSILON)
 {
     if (!context || !aModel || !bModel)
         return nullptr;
@@ -67,8 +66,7 @@ static SharedPtr<Model> ComputeCsgModel(Context* context,
     const ResourceRefList* sourceMaterials[] = {&aMaterials, &bMaterials};
     return CsgBuildModel(context, *triangulated,
         ea::span<const Model* const>(models, 2),
-        ea::span<const ResourceRefList* const>(sourceMaterials, 2),
-        outMaterials, exportFlags);
+        ea::span<const ResourceRefList* const>(sourceMaterials, 2));
 }
 
 TEST_CASE("CSG: ComputeCsgStaticModel validates inputs")
@@ -112,7 +110,7 @@ static SharedPtr<Model> CreateQuadModel(Context* context)
 
     Tests::AppendQuad(lod0, Vector3::ZERO, Quaternion::IDENTITY, {2.0f, 2.0f}, Color::WHITE);
 
-    auto model = modelView->ExportModel(ModelViewExportFlag::Headless);
+    auto model = modelView->ExportModel();
     model->SetName("Tests/ModelCsg/Quad");
     return model;
 }
@@ -175,7 +173,7 @@ static SharedPtr<Model> CreateCubeModel(Context* context, float halfExtent = 1.0
         lod0.indices_.push_back(baseIndex + 2);
     }
 
-    auto model = modelView->ExportModel(ModelViewExportFlag::Headless);
+    auto model = modelView->ExportModel();
     model->SetName("Tests/ModelCsg/Cube");
     return model;
 }
