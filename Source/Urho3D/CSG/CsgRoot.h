@@ -125,6 +125,8 @@ private:
     WeakPtr<StaticModel> tempBase_;
     ea::vector<WeakPtr<Node>> listenedNodes_;
     ea::vector<WeakPtr<CsgBrush>> brushes_;
+
+    unsigned ignoreChildDirtyFrame_{};
 };
 
 } // namespace Urho3D

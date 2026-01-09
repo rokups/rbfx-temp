@@ -3,7 +3,6 @@
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 #include "Urho3D/CSG/Csg.h"
-
 #include "Urho3D/CSG/CsgBrush.h"
 #include "Urho3D/CSG/CsgBsp.h"
 #include "Urho3D/CSG/CsgCommon.h"
@@ -31,7 +30,6 @@
 #include <EASTL/sort.h>
 
 #include <cassert>
-#include <cstddef>
 #include <type_traits>
 
 namespace Urho3D
@@ -80,8 +78,8 @@ ea::vector<VertexElement> GetSupportedVertexElements(const Geometry* sourceGeome
 
     if (sourceGeometry)
     {
-        unsigned vertexSize{};
-        unsigned indexSize{};
+        unsigned vertexSize = 0;
+        unsigned indexSize = 0;
         const unsigned char* vertexData = nullptr;
         const unsigned char* indexData = nullptr;
         const ea::vector<VertexElement>* srcElements = nullptr;
@@ -108,14 +106,6 @@ ByteVector PackVerticesToLayout(const ea::vector<ModelVertex>& vertices, const e
     constexpr unsigned kModelVertexVector4Count = 6u + ModelVertex::MaxColors + ModelVertex::MaxUVs;
     static_assert(std::is_standard_layout_v<ModelVertex>, "ModelVertex must be standard-layout");
     static_assert(alignof(ModelVertex) == alignof(Vector4), "ModelVertex and Vector4 alignment must match");
-    static_assert(offsetof(ModelVertex, position_) == 0, "ModelVertex::position_ must be first");
-    static_assert(offsetof(ModelVertex, normal_) == sizeof(Vector4) * 1u, "ModelVertex layout must be contiguous Vector4");
-    static_assert(offsetof(ModelVertex, tangent_) == sizeof(Vector4) * 2u, "ModelVertex layout must be contiguous Vector4");
-    static_assert(offsetof(ModelVertex, binormal_) == sizeof(Vector4) * 3u, "ModelVertex layout must be contiguous Vector4");
-    static_assert(offsetof(ModelVertex, blendIndices_) == sizeof(Vector4) * 4u, "ModelVertex layout must be contiguous Vector4");
-    static_assert(offsetof(ModelVertex, blendWeights_) == sizeof(Vector4) * 5u, "ModelVertex layout must be contiguous Vector4");
-    static_assert(offsetof(ModelVertex, color_) == sizeof(Vector4) * 6u, "ModelVertex layout must be contiguous Vector4");
-    static_assert(offsetof(ModelVertex, uv_) == sizeof(Vector4) * (6u + ModelVertex::MaxColors), "ModelVertex layout must be contiguous Vector4");
     static_assert(sizeof(ModelVertex) == sizeof(Vector4) * kModelVertexVector4Count, "ModelVertex must be exactly N*Vector4 bytes");
 
     const unsigned vertexCount = vertices.size();
@@ -135,8 +125,10 @@ ByteVector PackVerticesToLayout(const ea::vector<ModelVertex>& vertices, const e
 
     const unsigned srcStride = sizeof(Vector4) * elements.size();
     for (unsigned elementIndex = 0; elementIndex < elements.size(); ++elementIndex)
+    {
         VertexBuffer::PackVertexData(dstUnpacked.data() + elementIndex, srcStride, packed.data(), vertexSize,
             elements[elementIndex], 0, vertexCount);
+    }
 
     return packed;
 }
@@ -150,8 +142,7 @@ ea::vector<CsgPolygon> CsgBuildPolygonsFromModel(const Model* model, const Matri
         return polygons;
 
     const Matrix3 basis = worldTransform.ToMatrix3();
-    const float det = basis.Determinant();
-    const bool basisOk = !basis.IsNaN() && !basis.IsInf() && Abs(det) > M_EPSILON;
+    const bool basisOk = !basis.IsNaN() && !basis.IsInf() && Abs(basis.Determinant()) > M_EPSILON;
     const Matrix3 normalMatrix = basisOk ? basis.Inverse().Transpose() : Matrix3::IDENTITY;
 
     const unsigned numGeometries = model->GetNumGeometries();
@@ -161,11 +152,11 @@ ea::vector<CsgPolygon> CsgBuildPolygonsFromModel(const Model* model, const Matri
         if (!geom)
             continue;
 
-        const unsigned char* vertexData;
-        const unsigned char* indexData;
-        unsigned vertexSize;
-        unsigned indexSize;
-        const ea::vector<VertexElement>* elements;
+        unsigned vertexSize = 0;
+        unsigned indexSize = 0;
+        const unsigned char* vertexData = nullptr;
+        const unsigned char* indexData = nullptr;
+        const ea::vector<VertexElement>* elements = nullptr;
 
         geom->GetRawData(vertexData, vertexSize, indexData, indexSize, elements);
         if (!vertexData || !elements)
@@ -232,7 +223,8 @@ ea::vector<CsgPolygon> CsgBuildPolygonsFromModel(const Model* model, const Matri
                     Vector4 tangent4;
                     VertexBuffer::UnpackVertexData(
                         vertexData, vertexSize, *element, index, 1, &tangent4, sizeof(Vector4));
-                    const Vector3 transformedTangent = (basis * tangent4.ToVector3()).NormalizedOrDefault(Vector3::RIGHT);
+                    const Vector3 transformedTangent =
+                        (basis * tangent4.ToVector3()).NormalizedOrDefault(Vector3::RIGHT);
                     v.tangent_ = Vector4(transformedTangent, tangent4.w_);
                 }
 
@@ -242,7 +234,8 @@ ea::vector<CsgPolygon> CsgBuildPolygonsFromModel(const Model* model, const Matri
                     Vector4 binormal4;
                     VertexBuffer::UnpackVertexData(
                         vertexData, vertexSize, *element, index, 1, &binormal4, sizeof(Vector4));
-                    const Vector3 transformedBinormal = (basis * binormal4.ToVector3()).NormalizedOrDefault(Vector3::UP);
+                    const Vector3 transformedBinormal =
+                        (basis * binormal4.ToVector3()).NormalizedOrDefault(Vector3::UP);
                     v.binormal_ = Vector4(transformedBinormal, 0.0f);
                 }
 
@@ -250,15 +243,19 @@ ea::vector<CsgPolygon> CsgBuildPolygonsFromModel(const Model* model, const Matri
                 for (unsigned char i = 0; i < ModelVertex::MaxColors; ++i)
                 {
                     if (const VertexElement* element = elementPointers[(SEM_COLOR << 2) + i])
+                    {
                         VertexBuffer::UnpackVertexData(
                             vertexData, vertexSize, *element, index, 1, &v.color_[i], sizeof(Vector4));
+                    }
                 }
 
                 for (unsigned char i = 0; i < ModelVertex::MaxUVs; ++i)
                 {
                     if (const VertexElement* element = elementPointers[(SEM_TEXCOORD << 2) + i])
+                    {
                         VertexBuffer::UnpackVertexData(
                             vertexData, vertexSize, *element, index, 1, &v.uv_[i], sizeof(Vector4));
+                    }
                 }
 
                 // Ignore animation/instancing data (blend weights/indices, per-instance elements).
@@ -281,35 +278,35 @@ ea::vector<CsgPolygon> CsgBooleanOperation(const CsgBsp& bspA, const CsgBsp& bsp
     {
     case CsgOperation::Union:
     {
-        auto a_out_b = bspB.Clip(bspA.AllPolygons(), CsgClipMode::ClipToOutside, epsilon);
-        auto b_out_a = bspA.Clip(bspB.AllPolygons(), CsgClipMode::ClipToOutside, epsilon);
+        auto aOutB = bspB.Clip(bspA.AllPolygons(), CsgClipMode::ClipToOutside, epsilon);
+        auto bOutA = bspA.Clip(bspB.AllPolygons(), CsgClipMode::ClipToOutside, epsilon);
 
         resultPolys.insert(
-            resultPolys.end(), std::make_move_iterator(a_out_b.begin()), std::make_move_iterator(a_out_b.end()));
+            resultPolys.end(), std::make_move_iterator(aOutB.begin()), std::make_move_iterator(aOutB.end()));
         resultPolys.insert(
-            resultPolys.end(), std::make_move_iterator(b_out_a.begin()), std::make_move_iterator(b_out_a.end()));
+            resultPolys.end(), std::make_move_iterator(bOutA.begin()), std::make_move_iterator(bOutA.end()));
         break;
     }
     case CsgOperation::DifferenceAB:
     {
-        auto a_out_b = bspB.Clip(bspA.AllPolygons(), CsgClipMode::ClipToOutside, epsilon);
-        auto b_in_a = bspA.Clip(bspB.AllPolygonsInverted(), CsgClipMode::ClipToInside, epsilon);
+        auto aOutB = bspB.Clip(bspA.AllPolygons(), CsgClipMode::ClipToOutside, epsilon);
+        auto bInA = bspA.Clip(bspB.AllPolygonsInverted(), CsgClipMode::ClipToInside, epsilon);
 
         resultPolys.insert(
-            resultPolys.end(), std::make_move_iterator(a_out_b.begin()), std::make_move_iterator(a_out_b.end()));
+            resultPolys.end(), std::make_move_iterator(aOutB.begin()), std::make_move_iterator(aOutB.end()));
         resultPolys.insert(
-            resultPolys.end(), std::make_move_iterator(b_in_a.begin()), std::make_move_iterator(b_in_a.end()));
+            resultPolys.end(), std::make_move_iterator(bInA.begin()), std::make_move_iterator(bInA.end()));
         break;
     }
     case CsgOperation::Intersection:
     {
-        auto a_in_b = bspB.Clip(bspA.AllPolygons(), CsgClipMode::ClipToInside, epsilon);
-        auto b_in_a = bspA.Clip(bspB.AllPolygons(), CsgClipMode::ClipToInside, epsilon);
+        auto aInB = bspB.Clip(bspA.AllPolygons(), CsgClipMode::ClipToInside, epsilon);
+        auto bInA = bspA.Clip(bspB.AllPolygons(), CsgClipMode::ClipToInside, epsilon);
 
         resultPolys.insert(
-            resultPolys.end(), std::make_move_iterator(a_in_b.begin()), std::make_move_iterator(a_in_b.end()));
+            resultPolys.end(), std::make_move_iterator(aInB.begin()), std::make_move_iterator(aInB.end()));
         resultPolys.insert(
-            resultPolys.end(), std::make_move_iterator(b_in_a.begin()), std::make_move_iterator(b_in_a.end()));
+            resultPolys.end(), std::make_move_iterator(bInA.begin()), std::make_move_iterator(bInA.end()));
         break;
     }
     }
@@ -317,11 +314,7 @@ ea::vector<CsgPolygon> CsgBooleanOperation(const CsgBsp& bspA, const CsgBsp& bsp
     return resultPolys;
 }
 
-CsgBsp CsgBuildBspFromModel(
-    const Model* model,
-    const Matrix3x4& worldTransform,
-    unsigned meshId,
-    float epsilon)
+CsgBsp CsgBuildBspFromModel(const Model* model, const Matrix3x4& worldTransform, unsigned meshId, float epsilon)
 {
     if (!model)
         return {};
@@ -337,11 +330,8 @@ CsgBsp CsgBuildBspFromModel(
 
 SharedPtr<Model> CsgBuildModel(Context* context, const CsgTriangulatedModel& triangulated,
     ea::span<const Model* const> sourceModels, ea::span<const ResourceRefList* const> sourceMaterials,
-    ResourceRefList* outMaterials, ModelViewExportFlags exportFlags)
+    ResourceRefList* outMaterials)
 {
-    const bool isHeadless = exportFlags & ModelViewExportFlag::Headless;
-    const DeviceObjectFlags bufferFlags = isHeadless ? DeviceObjectFlag::Headless : DeviceObjectFlag::None;
-
     if (outMaterials)
     {
         outMaterials->type_ = Material::GetTypeStatic();
@@ -373,7 +363,7 @@ SharedPtr<Model> CsgBuildModel(Context* context, const CsgTriangulatedModel& tri
         Geometry* srcGeometry = srcModel ? srcModel->GetGeometry(geometryIndex, 0) : nullptr;
         ea::vector<VertexElement> vbElements = GetSupportedVertexElements(srcGeometry);
 
-        auto vb = MakeShared<VertexBuffer>(context, bufferFlags);
+        auto vb = MakeShared<VertexBuffer>(context);
         vb->SetShadowed(true);
         if (!vb->SetSize(vertexCount, vbElements))
             continue;
@@ -382,7 +372,7 @@ SharedPtr<Model> CsgBuildModel(Context* context, const CsgTriangulatedModel& tri
         vb->Update(packedVertices.data());
 
         const bool largeIndices = vertexCount > 0xFFFFu;
-        auto ib = MakeShared<IndexBuffer>(context, bufferFlags);
+        auto ib = MakeShared<IndexBuffer>(context);
         ib->SetShadowed(true);
         ib->SetSize(src.indexData_.size(), largeIndices);
         ib->SetUnpackedData(src.indexData_.data(), 0, src.indexData_.size());

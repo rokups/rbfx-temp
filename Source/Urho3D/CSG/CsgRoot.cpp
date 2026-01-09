@@ -133,6 +133,22 @@ void CsgRoot::OnMarkedDirty(Node* node)
     if (!IsEnabledEffective())
         return;
 
+    Time* time = GetSubsystem<Time>();
+    const unsigned currentFrame = time->GetFrameNumber();
+
+    // Rebuild is pointless when root node moves: it doesn't change inputs in root-local space,
+    // it only moves the whole output together with the node.
+    // Note: Node::MarkDirty marks children dirty too, so we must ignore the child notifications
+    // caused by this same root dirty cascade.
+    if (node == node_)
+    {
+        ignoreChildDirtyFrame_ = currentFrame;
+        return;
+    }
+
+    if (ignoreChildDirtyFrame_ == currentFrame)
+        return;
+
     rebuildDirty_ = true;
     ++rebuildRequestId_;
     lastChangeTimeMs_ = Time::GetSystemTime();
@@ -275,7 +291,14 @@ void CsgRoot::UpdateSubscriptions()
     PruneBrushes();
 
     // Rebuild listener set from registered brushes.
-    listenedNodes_.reserve(brushes_.size());
+    listenedNodes_.reserve(brushes_.size() + 1);
+
+    // Listen to the root itself to detect parent/root transform cascades.
+    if (node_)
+    {
+        node_->AddListener(this);
+        listenedNodes_.push_back(WeakPtr<Node>(node_));
+    }
 
     for (const WeakPtr<CsgBrush>& weakBrush : brushes_)
     {
@@ -348,7 +371,7 @@ void CsgRoot::UnregisterBrushInternal(CsgBrush* brush)
         return;
 
     Node* brushNode = brush->GetNode();
-    if (brushNode)
+    if (brushNode && brushNode != node_)
         brushNode->RemoveListener(this);
 
     for (unsigned i = 0; i < brushes_.size();)
@@ -593,8 +616,7 @@ void CsgRoot::ApplyBuildJobResultOnMainThread(
 
         renderableModel = CsgBuildModel(root->context_, *triangulated,
             ea::span<const Model* const>(sourceModels.data(), sourceModels.size()),
-            ea::span<const ResourceRefList* const>(sourceMaterials.data(), sourceMaterials.size()), &materials,
-            ModelViewExportFlag::None);
+            ea::span<const ResourceRefList* const>(sourceMaterials.data(), sourceMaterials.size()), &materials);
     }
 
     root->ApplyResultToOutput(renderableModel, materials);

@@ -143,7 +143,7 @@
 						</component>
 						<component _id="42" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -157,7 +157,7 @@
 								<component _id="37" _typeName="CsgBrush">
 									<attributes>
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -167,7 +167,7 @@
 				<node _id="25">
 					<attributes>
 						<attribute name="Name" type="String" value="Intersection" />
-						<attribute name="Position" type="Vector3" value="0 0 2" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
 					</attributes>
 					<components>
 						<component _id="51" _typeName="CsgRoot">
@@ -178,7 +178,7 @@
 						</component>
 						<component _id="52" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -193,7 +193,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="Intersection" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -203,7 +203,7 @@
 				<node _id="37">
 					<attributes>
 						<attribute name="Name" type="String" value="Difference" />
-						<attribute name="Position" type="Vector3" value="0 0 4" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
 					</attributes>
 					<components>
 						<component _id="62" _typeName="CsgRoot">
@@ -214,7 +214,7 @@
 						</component>
 						<component _id="63" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -229,7 +229,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="DifferenceAB" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -257,7 +257,7 @@
 						</component>
 						<component _id="82" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -271,7 +271,7 @@
 								<component _id="83" _typeName="CsgBrush">
 									<attributes>
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -281,7 +281,7 @@
 				<node _id="62">
 					<attributes>
 						<attribute name="Name" type="String" value="Intersection" />
-						<attribute name="Position" type="Vector3" value="0 0 2" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
 					</attributes>
 					<components>
 						<component _id="88" _typeName="CsgRoot">
@@ -292,7 +292,7 @@
 						</component>
 						<component _id="89" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -307,7 +307,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="Intersection" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -317,7 +317,7 @@
 				<node _id="69">
 					<attributes>
 						<attribute name="Name" type="String" value="Difference" />
-						<attribute name="Position" type="Vector3" value="0 0 4" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
 					</attributes>
 					<components>
 						<component _id="95" _typeName="CsgRoot">
@@ -328,7 +328,7 @@
 						</component>
 						<component _id="96" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -343,7 +343,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="DifferenceAB" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -371,7 +371,7 @@
 						</component>
 						<component _id="115" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -385,7 +385,7 @@
 								<component _id="116" _typeName="CsgBrush">
 									<attributes>
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -395,7 +395,7 @@
 				<node _id="104">
 					<attributes>
 						<attribute name="Name" type="String" value="Intersection" />
-						<attribute name="Position" type="Vector3" value="0 0 2" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
 					</attributes>
 					<components>
 						<component _id="125" _typeName="CsgRoot">
@@ -406,7 +406,7 @@
 						</component>
 						<component _id="126" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -421,7 +421,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="Intersection" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -431,7 +431,7 @@
 				<node _id="116">
 					<attributes>
 						<attribute name="Name" type="String" value="Difference" />
-						<attribute name="Position" type="Vector3" value="0 0 4" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
 					</attributes>
 					<components>
 						<component _id="136" _typeName="CsgRoot">
@@ -442,7 +442,7 @@
 						</component>
 						<component _id="137" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -457,7 +457,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="DifferenceAB" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -485,7 +485,7 @@
 						</component>
 						<component _id="160" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -499,7 +499,7 @@
 								<component _id="161" _typeName="CsgBrush">
 									<attributes>
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -509,7 +509,7 @@
 				<node _id="161">
 					<attributes>
 						<attribute name="Name" type="String" value="Intersection" />
-						<attribute name="Position" type="Vector3" value="0 0 2" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
 					</attributes>
 					<components>
 						<component _id="174" _typeName="CsgRoot">
@@ -520,7 +520,7 @@
 						</component>
 						<component _id="175" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -535,7 +535,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="Intersection" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -545,7 +545,7 @@
 				<node _id="178">
 					<attributes>
 						<attribute name="Name" type="String" value="Difference" />
-						<attribute name="Position" type="Vector3" value="0 0 4" />
+						<attribute name="Position" type="Vector3" value="0 0 8" />
 					</attributes>
 					<components>
 						<component _id="189" _typeName="CsgRoot">
@@ -556,7 +556,7 @@
 						</component>
 						<component _id="190" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -571,7 +571,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="DifferenceAB" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -613,7 +613,7 @@
 								<component _id="234" _typeName="CsgBrush">
 									<attributes>
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -623,7 +623,7 @@
 				<node _id="235">
 					<attributes>
 						<attribute name="Name" type="String" value="Intersection" />
-						<attribute name="Position" type="Vector3" value="0 0 2" />
+						<attribute name="Position" type="Vector3" value="0 0 4" />
 					</attributes>
 					<components>
 						<component _id="238" _typeName="CsgRoot">
@@ -634,7 +634,7 @@
 						</component>
 						<component _id="239" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -648,7 +648,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="Intersection" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -658,7 +658,7 @@
 				<node _id="241">
 					<attributes>
 						<attribute name="Name" type="String" value="Difference" />
-						<attribute name="Position" type="Vector3" value="0 0 4" />
+						<attribute name="Position" type="Vector3" value="0 0 8.007124" />
 					</attributes>
 					<components>
 						<component _id="244" _typeName="CsgRoot">
@@ -669,7 +669,7 @@
 						</component>
 						<component _id="245" _typeName="StaticModel">
 							<attributes>
-								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/StoneTiled.xml" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/Stone.xml;Materials/CheckboardProperties.xml" />
 							</attributes>
 						</component>
 					</components>
@@ -683,7 +683,7 @@
 									<attributes>
 										<attribute name="Operation" type="String" value="DifferenceAB" />
 										<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/StoneTiled.xml" />
+										<attribute name="Materials" type="ResourceRefList" value="Material;Materials/CheckboardProperties.xml" />
 									</attributes>
 								</component>
 							</components>
@@ -693,6 +693,9 @@
 			</nodes>
 		</node>
 		<node _id="429">
+			<attributes>
+				<attribute name="Position" type="Vector3" value="-4 0 4" />
+			</attributes>
 			<nodes>
 				<node _id="288">
 					<attributes>
@@ -761,7 +764,7 @@
 				<node _id="390">
 					<attributes>
 						<attribute name="Name" type="String" value="CSG Tree" />
-						<attribute name="Position" type="Vector3" value="1.671513 0.5 8.148615" />
+						<attribute name="Position" type="Vector3" value="4 0.5 8.148615" />
 					</attributes>
 					<components>
 						<component _id="363" _typeName="CsgRoot">
@@ -827,7 +830,7 @@
 				<node _id="400">
 					<attributes>
 						<attribute name="Name" type="String" value="CSG Tree" />
-						<attribute name="Position" type="Vector3" value="3.445844 0.5 8.148615" />
+						<attribute name="Position" type="Vector3" value="8 0.5 8.148615" />
 					</attributes>
 					<components>
 						<component _id="372" _typeName="CsgRoot">
@@ -892,7 +895,7 @@
 				<node _id="413">
 					<attributes>
 						<attribute name="Name" type="String" value="CSG Tree" />
-						<attribute name="Position" type="Vector3" value="4.861225 0.5 8.148615" />
+						<attribute name="Position" type="Vector3" value="12 0.5 8.148615" />
 					</attributes>
 					<components>
 						<component _id="383" _typeName="CsgRoot">
@@ -959,7 +962,7 @@
 		</node>
 		<node _id="430">
 			<attributes>
-				<attribute name="Position" type="Vector3" value="0 0 2.504102" />
+				<attribute name="Position" type="Vector3" value="-4 0 8" />
 			</attributes>
 			<nodes>
 				<node _id="431">
@@ -1030,7 +1033,7 @@
 				<node _id="438">
 					<attributes>
 						<attribute name="Name" type="String" value="CSG Tree" />
-						<attribute name="Position" type="Vector3" value="1.671513 0.5 8.148615" />
+						<attribute name="Position" type="Vector3" value="4 0.5 8.148615" />
 					</attributes>
 					<components>
 						<component _id="403" _typeName="CsgRoot">
@@ -1096,7 +1099,7 @@
 				<node _id="448">
 					<attributes>
 						<attribute name="Name" type="String" value="CSG Tree" />
-						<attribute name="Position" type="Vector3" value="3.445844 0.5 8.148615" />
+						<attribute name="Position" type="Vector3" value="8 0.5 8.148615" />
 					</attributes>
 					<components>
 						<component _id="412" _typeName="CsgRoot">
@@ -1161,7 +1164,7 @@
 				<node _id="461">
 					<attributes>
 						<attribute name="Name" type="String" value="CSG Tree" />
-						<attribute name="Position" type="Vector3" value="4.861225 0.5 8.148615" />
+						<attribute name="Position" type="Vector3" value="12 0.5 8.148615" />
 					</attributes>
 					<components>
 						<component _id="423" _typeName="CsgRoot">

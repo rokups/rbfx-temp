@@ -329,6 +329,21 @@ void BspNode::Build(ea::vector<CsgPolygon>&& polygons, float epsilon)
     if (polygons.empty())
         return;
 
+    // Termination heuristic: if there is only one polygon, further splitting cannot improve
+    // the BSP and may lead to pathological recursion on degenerate inputs.
+    if (polygons.size() == 1)
+    {
+        // `ClipImpl` always classifies polygons against `plane_`, even for leaf nodes,
+        // so ensure it's initialized to a meaningful plane.
+        auto& poly = polygons.front();
+        if (poly.vertices_.size() >= 3 && poly.plane_.normal_.LengthSquared() <= M_EPSILON)
+            poly.plane_ = Plane(poly.vertices_[0].GetPosition(), poly.vertices_[1].GetPosition(), poly.vertices_[2].GetPosition());
+
+        plane_ = poly.plane_;
+        polygons_.push_back(ea::move(poly));
+        return;
+    }
+
     plane_ = PickSplittingPlane(polygons, epsilon);
 
     ea::vector<CsgPolygon> frontList;
@@ -429,9 +444,9 @@ void CsgBsp::Build(ea::vector<CsgPolygon>&& polygons, float epsilon)
     const Vector3 size = bbox.Size();
     const Vector3 min = bbox.min_;
     const Vector3 scale(
-        size.x_ > M_EPSILON ? 1.0f / size.x_ : 0.0f,
-        size.y_ > M_EPSILON ? 1.0f / size.y_ : 0.0f,
-        size.z_ > M_EPSILON ? 1.0f / size.z_ : 0.0f);
+        size.x_ > 0.0f ? 1.0f / size.x_ : 0.0f,
+        size.y_ > 0.0f ? 1.0f / size.y_ : 0.0f,
+        size.z_ > 0.0f ? 1.0f / size.z_ : 0.0f);
 
     struct KeyedPolygon
     {

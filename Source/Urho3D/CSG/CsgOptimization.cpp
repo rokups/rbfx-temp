@@ -332,7 +332,7 @@ static float ChooseIntersectionGridCellSize(const ea::fixed_vector<Vector2, 16, 
 
     // Heuristic: aim for ~sqrt(n) cells across the bbox.
     // Keep it conservative and stable to avoid missing boundary cases.
-    float cell = diag > M_EPSILON && n > 1.0f ? (diag / Sqrt(n)) : 1.0f;
+    float cell = diag > 0.0f && n > 1.0f ? (diag / Sqrt(n)) : 1.0f;
     cell = ea::max(cell, intersectionEps * 64.0f);
     return ea::max(cell, 1e-6f);
 }
@@ -1524,7 +1524,7 @@ static unsigned ResolveTJunctions(ea::vector<CsgPolygon>& polygons, float epsilo
 
     const Vector3 size = bbox.Size();
     const float maxDim = ea::max(size.x_, ea::max(size.y_, size.z_));
-    float cellSize = maxDim > M_EPSILON ? maxDim / 20.0f : 1.0f;
+    float cellSize = maxDim > 0.0f ? maxDim / 20.0f : 1.0f;
     cellSize = ea::max(cellSize, epsilon * 10.0f);
 
     VertexGrid grid;

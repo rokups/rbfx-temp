@@ -75,8 +75,7 @@ URHO3D_API SharedPtr<Model> CsgBuildModel(
     const CsgTriangulatedModel& triangulated,
     ea::span<const Model* const> sourceModels,
     ea::span<const ResourceRefList* const> sourceMaterials,
-    ResourceRefList* outMaterials = nullptr,
-    ModelViewExportFlags exportFlags = ModelViewExportFlag::None);
+    ResourceRefList* outMaterials = nullptr);
 
 /// Register CSG library objects.
 void URHO3D_API RegisterCsgLibrary(Context* context);
