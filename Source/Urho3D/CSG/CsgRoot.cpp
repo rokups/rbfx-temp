@@ -571,8 +571,8 @@ void CsgRoot::ExecuteBuildJob(unsigned threadIndex, WorkQueue* queue, const std:
         triangulated = CsgTriangulatePolygons(ea::move(resultPolygons), job->epsilon_);
     URHO3D_LOGDEBUG("CSG rebuild took {}.{}ms", timer.GetUSec() / 1000, timer.GetUSec() % 1000);
 
-    queue->PostTaskForMainThread([job, triangulated = ea::move(triangulated)](unsigned, WorkQueue*) mutable
-    { ApplyBuildJobResultOnMainThread(job, ea::move(triangulated)); }, TaskPriority::High);
+    queue->PostDelayedTaskForMainThread([job, triangulated = ea::move(triangulated)](unsigned, WorkQueue*) mutable
+    { ApplyBuildJobResultOnMainThread(job, ea::move(triangulated)); });
 }
 
 void CsgRoot::ApplyBuildJobResultOnMainThread(
