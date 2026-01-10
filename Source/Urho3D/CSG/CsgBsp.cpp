@@ -103,72 +103,99 @@ ea::vector<CsgPolygon> ClipImpl(const BspNode& node, PolygonList& polygons, CsgC
     if (polygons.empty())
         return {};
 
-    ea::vector<CsgPolygon> frontList;
-    ea::vector<CsgPolygon> backList;
-    for (auto& poly : polygons)
+    // Iterative DFS that preserves the exact output concatenation order of the previous
+    // recursive implementation: front subtree results first, then back subtree results.
+    struct Frame
     {
-        int frontCount = 0;
-        int backCount = 0;
+        const BspNode* node_{};
+        ea::vector<CsgPolygon> polygons_;
+    };
 
-        for (const auto& v : poly.vertices_)
-        {
-            const float d = node.plane_.normal_.DotProduct(v.GetPosition()) + node.plane_.d_;
-            if (d > epsilon)
-                frontCount++;
-            else if (d < -epsilon)
-                backCount++;
-        }
+    ea::fixed_vector<Frame, 64, true> stack;
 
-        if (frontCount == 0 && backCount == 0)
-        {
-            auto& list = node.plane_.normal_.DotProduct(poly.plane_.normal_) > 0.0f ? frontList : backList;
-            if constexpr (Move)
-                list.push_back(ea::move(poly));
-            else
-                list.push_back(poly);
-        }
-        else if (frontCount > 0 && backCount == 0)
-        {
-            if constexpr (Move)
-                frontList.push_back(ea::move(poly));
-            else
-                frontList.push_back(poly);
-        }
-        else if (backCount > 0 && frontCount == 0)
-        {
-            if constexpr (Move)
-                backList.push_back(ea::move(poly));
-            else
-                backList.push_back(poly);
-        }
-        else
-        {
-            CsgPolygon f, b;
-            SplitPolygon(poly, node.plane_, f, b, epsilon);
-            if (!f.vertices_.empty())
-                frontList.push_back(ea::move(f));
-            if (!b.vertices_.empty())
-                backList.push_back(ea::move(b));
-        }
-    }
+    Frame rootFrame;
+    rootFrame.node_ = &node;
+    if constexpr (Move)
+        rootFrame.polygons_ = ea::move(polygons);
+    else
+        rootFrame.polygons_ = polygons;
+    stack.push_back(ea::move(rootFrame));
 
     ea::vector<CsgPolygon> result;
+    // Heuristic: clipping typically outputs <= input polygon count (often less).
+    result.reserve(rootFrame.polygons_.size());
 
-    if (node.front_)
+    while (!stack.empty())
     {
-        auto f = node.front_->Clip(ea::move(frontList), mode, epsilon);
-        result.insert(result.end(), std::make_move_iterator(f.begin()), std::make_move_iterator(f.end()));
-    }
-    else if (mode == CsgClipMode::ClipToOutside)
-        result.insert(result.end(), std::make_move_iterator(frontList.begin()), std::make_move_iterator(frontList.end()));
+        Frame frame = ea::move(stack.back());
+        stack.pop_back();
 
-    if (node.back_)
-    {
-        auto b = node.back_->Clip(ea::move(backList), mode, epsilon);
-        result.insert(result.end(), std::make_move_iterator(b.begin()), std::make_move_iterator(b.end()));
+        if (frame.polygons_.empty())
+            continue;
+
+        const BspNode& current = *frame.node_;
+
+        ea::vector<CsgPolygon> frontList;
+        ea::vector<CsgPolygon> backList;
+        // Worst case may add extra polys due to splitting, but at least avoid early reallocations.
+        frontList.reserve(frame.polygons_.size() + 2);
+        backList.reserve(frame.polygons_.size() + 2);
+        for (auto& poly : frame.polygons_)
+        {
+            int frontCount = 0;
+            int backCount = 0;
+
+            for (const auto& v : poly.vertices_)
+            {
+                const float d = current.plane_.normal_.DotProduct(v.GetPosition()) + current.plane_.d_;
+                if (d > epsilon)
+                    frontCount++;
+                else if (d < -epsilon)
+                    backCount++;
+            }
+
+            if (frontCount == 0 && backCount == 0)
+            {
+                auto& list = current.plane_.normal_.DotProduct(poly.plane_.normal_) > 0.0f ? frontList : backList;
+                list.push_back(ea::move(poly));
+            }
+            else if (frontCount > 0 && backCount == 0)
+                frontList.push_back(ea::move(poly));
+            else if (backCount > 0 && frontCount == 0)
+                backList.push_back(ea::move(poly));
+            else
+            {
+                CsgPolygon f, b;
+                SplitPolygon(poly, current.plane_, f, b, epsilon);
+                if (!f.vertices_.empty())
+                    frontList.push_back(ea::move(f));
+                if (!b.vertices_.empty())
+                    backList.push_back(ea::move(b));
+            }
+        }
+
+        // To preserve recursive order (front results then back results) using LIFO stack,
+        // we push the back work first so the front is processed next.
+        if (current.back_)
+        {
+            Frame child;
+            child.node_ = current.back_.get();
+            child.polygons_ = ea::move(backList);
+            stack.push_back(ea::move(child));
+        }
+        else if (mode == CsgClipMode::ClipToInside)
+            result.insert(result.end(), std::make_move_iterator(backList.begin()), std::make_move_iterator(backList.end()));
+
+        if (current.front_)
+        {
+            Frame child;
+            child.node_ = current.front_.get();
+            child.polygons_ = ea::move(frontList);
+            stack.push_back(ea::move(child));
+        }
+        else if (mode == CsgClipMode::ClipToOutside)
+            result.insert(result.end(), std::make_move_iterator(frontList.begin()), std::make_move_iterator(frontList.end()));
     }
-    else if (mode == CsgClipMode::ClipToInside)
-        result.insert(result.end(), std::make_move_iterator(backList.begin()), std::make_move_iterator(backList.end()));
 
     return result;
 }
@@ -329,75 +356,101 @@ void BspNode::Build(ea::vector<CsgPolygon>&& polygons, float epsilon)
     if (polygons.empty())
         return;
 
-    // Termination heuristic: if there is only one polygon, further splitting cannot improve
-    // the BSP and may lead to pathological recursion on degenerate inputs.
-    if (polygons.size() == 1)
+    struct BuildFrame
     {
-        // `ClipImpl` always classifies polygons against `plane_`, even for leaf nodes,
-        // so ensure it's initialized to a meaningful plane.
-        auto& poly = polygons.front();
-        if (poly.vertices_.size() >= 3 && poly.plane_.normal_.LengthSquared() <= M_EPSILON)
-            poly.plane_ = Plane(poly.vertices_[0].GetPosition(), poly.vertices_[1].GetPosition(), poly.vertices_[2].GetPosition());
+        BspNode* node_{};
+        ea::vector<CsgPolygon> polygons_;
+    };
 
-        plane_ = poly.plane_;
-        polygons_.push_back(ea::move(poly));
-        return;
-    }
+    // Most BSP trees are relatively shallow; use small-buffer stack with overflow.
+    ea::fixed_vector<BuildFrame, 64, true> stack;
+    stack.push_back({this, ea::move(polygons)});
 
-    plane_ = PickSplittingPlane(polygons, epsilon);
-
-    ea::vector<CsgPolygon> frontList;
-    ea::vector<CsgPolygon> backList;
-    for (auto& poly : polygons)
+    while (!stack.empty())
     {
-        int frontCount = 0;
-        int backCount = 0;
-        int coplanarCount = 0;
+        BuildFrame frame = ea::move(stack.back());
+        stack.pop_back();
 
-        for (const auto& v : poly.vertices_)
+        BspNode& current = *frame.node_;
+        auto& currentPolys = frame.polygons_;
+
+        if (currentPolys.empty())
+            continue;
+
+        // Termination heuristic: if there is only one polygon, further splitting cannot improve
+        // the BSP and may lead to pathological recursion on degenerate inputs.
+        if (currentPolys.size() == 1)
         {
-            const float d = plane_.normal_.DotProduct(v.GetPosition()) + plane_.d_;
-            if (d > epsilon)
-                frontCount++;
-            else if (d < -epsilon)
-                backCount++;
+            // `ClipImpl` always classifies polygons against `plane_`, even for leaf nodes,
+            // so ensure it's initialized to a meaningful plane.
+            auto& poly = currentPolys.front();
+            if (poly.vertices_.size() >= 3 && poly.plane_.normal_.LengthSquared() <= M_EPSILON)
+                poly.plane_ = Plane(poly.vertices_[0].GetPosition(), poly.vertices_[1].GetPosition(), poly.vertices_[2].GetPosition());
+
+            current.plane_ = poly.plane_;
+            current.polygons_.push_back(ea::move(poly));
+            continue;
+        }
+
+        current.plane_ = PickSplittingPlane(currentPolys, epsilon);
+
+        ea::vector<CsgPolygon> frontList;
+        ea::vector<CsgPolygon> backList;
+        frontList.reserve(currentPolys.size() + 2);
+        backList.reserve(currentPolys.size() + 2);
+        for (auto& poly : currentPolys)
+        {
+            int frontCount = 0;
+            int backCount = 0;
+            int coplanarCount = 0;
+
+            for (const auto& v : poly.vertices_)
+            {
+                const float d = current.plane_.normal_.DotProduct(v.GetPosition()) + current.plane_.d_;
+                if (d > epsilon)
+                    frontCount++;
+                else if (d < -epsilon)
+                    backCount++;
+                else
+                    coplanarCount++;
+            }
+
+            if (coplanarCount == (int)poly.vertices_.size())
+            {
+                current.polygons_.push_back(ea::move(poly));
+            }
+            else if (frontCount > 0 && backCount == 0)
+            {
+                frontList.push_back(ea::move(poly));
+            }
+            else if (backCount > 0 && frontCount == 0)
+            {
+                backList.push_back(ea::move(poly));
+            }
             else
-                coplanarCount++;
+            {
+                CsgPolygon f, b;
+                SplitPolygon(poly, current.plane_, f, b, epsilon);
+                if (!f.vertices_.empty())
+                    frontList.push_back(ea::move(f));
+                if (!b.vertices_.empty())
+                    backList.push_back(ea::move(b));
+            }
         }
 
-        if (coplanarCount == (int)poly.vertices_.size())
+        // Preserve recursive build order: build front subtree first, then back subtree.
+        // With LIFO stack, push back work first so front is processed next.
+        if (!backList.empty())
         {
-            polygons_.push_back(ea::move(poly));
+            current.back_ = ea::make_unique<BspNode>();
+            stack.push_back({current.back_.get(), ea::move(backList)});
         }
-        else if (frontCount > 0 && backCount == 0)
-        {
-            frontList.push_back(ea::move(poly));
-        }
-        else if (backCount > 0 && frontCount == 0)
-        {
-            backList.push_back(ea::move(poly));
-        }
-        else
-        {
-            CsgPolygon f, b;
-            SplitPolygon(poly, plane_, f, b, epsilon);
-            if (!f.vertices_.empty())
-                frontList.push_back(ea::move(f));
-            if (!b.vertices_.empty())
-                backList.push_back(ea::move(b));
-        }
-    }
 
-    if (!frontList.empty())
-    {
-        front_ = ea::make_unique<BspNode>();
-        front_->Build(ea::move(frontList), epsilon);
-    }
-
-    if (!backList.empty())
-    {
-        back_ = ea::make_unique<BspNode>();
-        back_->Build(ea::move(backList), epsilon);
+        if (!frontList.empty())
+        {
+            current.front_ = ea::make_unique<BspNode>();
+            stack.push_back({current.front_.get(), ea::move(frontList)});
+        }
     }
 }
 
