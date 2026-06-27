@@ -133,10 +133,32 @@ def resolve_deploy_artifact_tags(platform_tags: list[str]) -> list[str]:
     return deploy_artifact_tags
 
 
+def resolve_runs_on(platform_tag: str) -> str:
+    if platform_tag.startswith(('windows-', 'uwp-')):
+        return 'windows-latest'
+    if platform_tag.startswith(('macos-', 'ios-')):
+        return 'macos-latest'
+    return 'ubuntu-latest'
+
+
+def build_platform_matrix(platform_tags: list[str]) -> dict[str, list[dict[str, str]]]:
+    return {
+        'include': [
+            {
+                'ci_platform_tag': tag,
+                'runs_on': resolve_runs_on(tag),
+            }
+            for tag in platform_tags
+        ]
+    }
+
+
 def write_output(platform_tags: list[str], deploy_artifact_tags: list[str]) -> None:
     github_output = require_env('GITHUB_OUTPUT')
+    platform_matrix = build_platform_matrix(platform_tags)
     with open(github_output, 'a', encoding='utf-8') as output:
         print(f'platform_tags={json.dumps(platform_tags)}', file=output)
+        print(f'platform_matrix={json.dumps(platform_matrix)}', file=output)
         print(f'deploy_artifact_tags={json.dumps(deploy_artifact_tags)}', file=output)
 
 

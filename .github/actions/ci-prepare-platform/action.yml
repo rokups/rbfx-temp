@@ -5,6 +5,10 @@ inputs:
   profile:
     description: Engine or downstream workflow profile.
     required: true
+  ci_platform_tag:
+    description: rbfx CI platform tag for this job.
+    required: false
+    default: ''
   checkout_engine_source:
     description: Whether to checkout engine source as part of the shared preparation.
     required: false
@@ -59,11 +63,52 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Initialize CI defaults
+      shell: bash
+      env:
+        INPUT_CI_PLATFORM_TAG: ${{ inputs.ci_platform_tag }}
+        DEFAULT_CCACHE_PREFIX: ${{ inputs.profile == 'downstream' && format('downstream-{0}', github.repository_id) || '' }}
+      run: |
+        ci_platform_tag_value="${INPUT_CI_PLATFORM_TAG:-${ci_platform_tag:-}}"
+        ci_source_path_value="${ci_source_path:-}"
+        if [[ -z "$ci_source_path_value" ]]; then
+          if [[ "${{ inputs.profile }}" == 'downstream' ]]; then
+            ci_source_path_value='rbfx'
+          else
+            ci_source_path_value='.'
+          fi
+        fi
+
+        {
+          printf 'DOTNET_VERSION=%s\n' "${DOTNET_VERSION:-8.0}"
+          printf 'CMAKE_VERSION=%s\n' "${CMAKE_VERSION:-4.3.x}"
+          printf 'BINARYEN_CORES=%s\n' "${BINARYEN_CORES:-1}"
+          printf 'TRACY_TIMER_FALLBACK=%s\n' "${TRACY_TIMER_FALLBACK:-1}"
+          printf 'CCACHE_DIR=%s\n' "${CCACHE_DIR:-${GITHUB_WORKSPACE}/.ccache}"
+          printf 'CCACHE_COMPRESS=%s\n' "${CCACHE_COMPRESS:-true}"
+          printf 'CCACHE_COMPRESSLEVEL=%s\n' "${CCACHE_COMPRESSLEVEL:-9}"
+          printf 'CCACHE_DEPEND=%s\n' "${CCACHE_DEPEND:-true}"
+          printf 'CCACHE_HARDLINK=%s\n' "${CCACHE_HARDLINK:-true}"
+          printf 'CCACHE_SLOPPINESS=%s\n' "${CCACHE_SLOPPINESS:-pch_defines,time_macros,include_file_mtime,include_file_ctime}"
+          printf 'CCACHE_NOHASHDIR=%s\n' "${CCACHE_NOHASHDIR:-true}"
+          printf 'CCACHE_LIMIT_MULTIPLE=%s\n' "${CCACHE_LIMIT_MULTIPLE:-0.6}"
+          printf 'ccache_prefix=%s\n' "${ccache_prefix:-${DEFAULT_CCACHE_PREFIX}}"
+          printf 'ci_platform_tag=%s\n' "$ci_platform_tag_value"
+          printf 'ci_workspace_dir=%s\n' "${ci_workspace_dir:-${GITHUB_WORKSPACE}}"
+          printf 'ci_source_path=%s\n' "$ci_source_path_value"
+          printf 'ci_source_dir=%s\n' "${ci_source_dir:-${GITHUB_WORKSPACE}/${ci_source_path_value}}"
+          printf 'ci_build_script=%s\n' "${ci_build_script:-./${ci_source_path_value}/script/ci_build.sh}"
+          printf 'ci_build_dir=%s\n' "${ci_build_dir:-${GITHUB_WORKSPACE}/rbfx-build/${ci_platform_tag_value}}"
+          printf 'ci_sdk_dir=%s\n' "${ci_sdk_dir:-${GITHUB_WORKSPACE}/SDK/${ci_platform_tag_value}}"
+          printf 'project_source_dir=%s\n' "${project_source_dir:-${GITHUB_WORKSPACE}}"
+          printf 'project_build_dir=%s\n' "${project_build_dir:-${GITHUB_WORKSPACE}/project-build/${ci_platform_tag_value}}"
+        } >> "$GITHUB_ENV"
+
     - name: Checkout engine source
       if: inputs.profile == 'engine' && inputs.checkout_engine_source == 'true'
       uses: actions/checkout@v5
       with:
-        path: ${{ env.ci_source_path }}
+        path: ${{ env.ci_source_path || '.' }}
         fetch-depth: 1
 
     - name: Checkout downstream project
@@ -79,12 +124,13 @@ runs:
       with:
         repository: ${{ inputs.rbfx_source_repository }}
         ref: ${{ inputs.rbfx_source_ref }}
-        path: ${{ env.ci_source_path }}
+        path: ${{ env.ci_source_path || 'rbfx' }}
         fetch-depth: 1
 
     - name: Setup environment
       shell: bash
-      run: ${{ env.ci_build_script }} setup-environment
+      run: |
+        "$ci_build_script" setup-environment
 
     - name: Checkout emsdk
       if: env.ci_platform == 'web'
@@ -97,13 +143,14 @@ runs:
     - name: Setup emsdk
       if: env.ci_platform == 'web'
       shell: bash
-      run: ${{ env.ci_build_script }} setup-emsdk
+      run: |
+        "$ci_build_script" setup-emsdk
 
     - name: Restore build cache
       if: inputs.profile == 'engine'
       uses: actions/cache/restore@v5
       with:
-        path: ${{ env.CCACHE_DIR }}
+        path: ${{ env.CCACHE_DIR || format('{0}/.ccache', github.workspace) }}
         key: ${{ env.ci_cache_id }}-${{ env.ci_short_sha }}
         restore-keys: |
           ${{ env.ci_cache_id }}
@@ -113,7 +160,7 @@ runs:
       id: build_cache
       uses: actions/cache/restore@v5
       with:
-        path: ${{ env.CCACHE_DIR }}
+        path: ${{ env.CCACHE_DIR || format('{0}/.ccache', github.workspace) }}
         key: ${{ env.ci_cache_id }}-${{ github.sha }}
         restore-keys: |
           ${{ env.ci_cache_id }}-
@@ -123,7 +170,7 @@ runs:
       if: env.ci_lib_type == 'dll' || env.ci_platform == 'android'
       uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
+        dotnet-version: ${{ env.DOTNET_VERSION || '8.0' }}
 
     - name: Setup Gradle
       if: env.ci_platform == 'android'
@@ -136,11 +183,12 @@ runs:
       if: env.ci_platform != 'android'
       uses: jwlawson/actions-setup-cmake@v2
       with:
-        cmake-version: '${{ env.CMAKE_VERSION }}'
+        cmake-version: ${{ env.CMAKE_VERSION || '4.3.x' }}
 
     - name: Dependencies
       shell: bash
-      run: ${{ env.ci_build_script }} dependencies
+      run: |
+        "$ci_build_script" dependencies
 
     - name: Download release SDK
       if: inputs.profile == 'downstream' && inputs.rbfx_mode == 'sdk'
@@ -148,9 +196,9 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: >-
-        ${{ env.ci_build_script }} download-release --
-        'https://github.com/${{ inputs.rbfx_sdk_repository }}/releases/download/latest/rebelfork-sdk-${{ env.ci_platform_tag }}-latest.7z'
-        '${{ env.ci_sdk_dir }}'
+        "$ci_build_script" download-release --
+        "https://github.com/${{ inputs.rbfx_sdk_repository }}/releases/download/latest/rebelfork-sdk-${ci_platform_tag}-latest.7z"
+        "$ci_sdk_dir"
 
     - name: Download cached ThirdParty SDK
       id: cached_sdk
@@ -161,30 +209,35 @@ runs:
       shell: bash
       env:
         DOWNLOAD_SDK_REPOSITORY: ${{ inputs.profile == 'engine' && github.repository || inputs.rbfx_sdk_repository }}
-      run: ${{ env.ci_build_script }} download-cached-sdk
+      run: |
+        "$ci_build_script" download-cached-sdk
 
     - name: Sanitize cached ThirdParty SDK
       if: steps.cached_sdk.outputs.sdk_cached == 'true'
       shell: bash
-      run: ${{ env.ci_build_script }} sanitize-cached-sdk '${{ github.workspace }}/cached-sdk'
+      run: |
+        "$ci_build_script" sanitize-cached-sdk '${{ github.workspace }}/cached-sdk'
 
     - name: Build swig
       if: >-
         (inputs.profile == 'engine' || inputs.rbfx_mode == 'source') &&
         ((env.ci_lib_type == 'dll' && env.ci_platform_group != 'desktop') || (env.ci_platform == 'ios'))
       shell: bash
-      run: ${{ env.ci_build_script }} build-swig
+      run: |
+        "$ci_build_script" build-swig
 
     - name: Setup PackageTool
       if: env.ci_platform_group != 'desktop'
       shell: bash
-      run: ${{ env.ci_build_script }} setup-package-tool
+      run: |
+        "$ci_build_script" setup-package-tool
 
     - name: Generate
       id: generate
       if: inputs.profile == 'engine' && env.ci_platform != 'android'
       shell: bash
-      run: ${{ env.ci_build_script }} generate-detect-thirdparty --auto-pch true
+      run: |
+        "$ci_build_script" generate-detect-thirdparty --auto-pch true
 
     - name: Configure local rbfx SDK
       id: source_sdk_generate
@@ -192,7 +245,8 @@ runs:
       shell: bash
       env:
         INPUT_RBFX_SOURCE_SDK_CMAKE_ARGS: ${{ inputs.rbfx_source_sdk_cmake_args }}
-      run: ${{ env.ci_build_script }} generate-detect-thirdparty
+      run: |
+        "$ci_build_script" generate-detect-thirdparty
 
     - name: Export cached ThirdParty prefix for Android local SDK build
       if: inputs.profile == 'downstream' && inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'sdk' && env.ci_platform == 'android' && steps.cached_sdk.outputs.sdk_cached == 'true'

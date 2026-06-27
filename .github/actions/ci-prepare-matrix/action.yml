@@ -1,0 +1,59 @@
+name: CI Prepare Matrix
+description: Prepare rbfx CI platform matrix and artifact selection.
+
+inputs:
+  workflow_profile:
+    description: Engine or downstream workflow profile.
+    required: false
+    default: downstream
+  platform_tags:
+    description: Comma-separated list of rbfx CI platform tags or selectors.
+    required: false
+    default: all
+  deploy_artifacts:
+    description: Artifact upload selector using the same syntax as platform_tags.
+    required: false
+    default: 'false'
+  rbfx_mode:
+    description: Use a released SDK or build rbfx from source.
+    required: false
+    default: sdk
+  rbfx_source_strategy:
+    description: Source build strategy for downstream builds.
+    required: false
+    default: source
+  rbfx_source_sdk_cmake_args:
+    description: Comma-separated extra CMake arguments for downstream local SDK generation.
+    required: false
+    default: ''
+  android_gradle_dir:
+    description: Path to the downstream Android Gradle project. Empty disables Android builds.
+    required: false
+    default: ''
+
+outputs:
+  platform_tags:
+    description: JSON array of selected platform tags.
+    value: ${{ steps.prepare.outputs.platform_tags }}
+  platform_matrix:
+    description: JSON object suitable for strategy.matrix, with ci_platform_tag and runs_on.
+    value: ${{ steps.prepare.outputs.platform_matrix }}
+  deploy_artifact_tags:
+    description: JSON array of selected platform tags whose artifacts should be uploaded.
+    value: ${{ steps.prepare.outputs.deploy_artifact_tags }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs and filter matrix
+      id: prepare
+      shell: bash
+      env:
+        INPUT_WORKFLOW_PROFILE: ${{ inputs.workflow_profile }}
+        INPUT_PLATFORM_TAGS: ${{ inputs.platform_tags }}
+        INPUT_DEPLOY_ARTIFACTS: ${{ inputs.deploy_artifacts }}
+        INPUT_RBFX_MODE: ${{ inputs.rbfx_mode }}
+        INPUT_RBFX_SOURCE_STRATEGY: ${{ inputs.rbfx_source_strategy }}
+        INPUT_RBFX_SOURCE_SDK_CMAKE_ARGS: ${{ inputs.rbfx_source_sdk_cmake_args }}
+        INPUT_ANDROID_GRADLE_DIR: ${{ inputs.android_gradle_dir }}
+      run: python3 "$GITHUB_ACTION_PATH/../../../script/ci_prepare_matrix.py"

@@ -1,0 +1,78 @@
+name: CI Publish Project Artifacts
+description: Stage downstream project outputs and optionally upload artifacts or release assets.
+
+inputs:
+  enabled:
+    description: Whether to stage and publish project outputs.
+    required: false
+    default: 'true'
+  upload_artifact:
+    description: Upload staged outputs as a GitHub Actions artifact.
+    required: false
+    default: 'false'
+  upload_release_assets:
+    description: Upload staged outputs to a GitHub release.
+    required: false
+    default: 'false'
+  artifact_name:
+    description: Artifact and release asset base name.
+    required: true
+  android_gradle_dir:
+    description: Path to the downstream Android Gradle project, relative to project_source_dir.
+    required: false
+    default: ''
+  project_source_dir:
+    description: Downstream project root. Defaults to project_source_dir env var or github.workspace.
+    required: false
+    default: ''
+  exclude_pdbs:
+    description: Exclude Windows PDB files from packaged artifacts.
+    required: false
+    default: 'true'
+  release_repository:
+    description: Repository that receives release assets. Defaults to the caller repository.
+    required: false
+    default: ''
+  release_tag:
+    description: Release tag that receives uploaded assets.
+    required: false
+    default: latest
+
+runs:
+  using: composite
+  steps:
+    - name: Stage build artifacts
+      if: inputs.enabled == 'true'
+      shell: bash
+      env:
+        INPUT_PROJECT_SOURCE_DIR: ${{ inputs.project_source_dir }}
+        INPUT_ANDROID_GRADLE_DIR: ${{ inputs.android_gradle_dir }}
+        EXCLUDE_PDBS: ${{ inputs.exclude_pdbs }}
+        ARTIFACT_STAGING_DIR: ${{ runner.temp }}/project-artifacts/${{ inputs.artifact_name }}
+      run: |
+        project_dir="${INPUT_PROJECT_SOURCE_DIR:-${project_source_dir:-${GITHUB_WORKSPACE}}}"
+        android_output_root=''
+        if [[ -n "$INPUT_ANDROID_GRADLE_DIR" ]]; then
+          android_output_root="$project_dir/$INPUT_ANDROID_GRADLE_DIR/build/outputs"
+        fi
+        "$ci_build_script" stage-project-artifacts --android-output-root "$android_output_root"
+
+    - name: Upload build artifacts
+      if: inputs.enabled == 'true' && inputs.upload_artifact == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: ${{ runner.temp }}/project-artifacts/${{ inputs.artifact_name }}
+        if-no-files-found: error
+
+    - name: Upload release assets
+      if: inputs.enabled == 'true' && inputs.upload_release_assets == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_REPOSITORY: ${{ inputs.release_repository != '' && inputs.release_repository || github.repository }}
+        RELEASE_TAG: ${{ inputs.release_tag }}
+        RELEASE_ASSET_NAME: ${{ inputs.artifact_name }}
+        ARTIFACT_STAGING_DIR: ${{ runner.temp }}/project-artifacts/${{ inputs.artifact_name }}
+      run: |
+        "$ci_build_script" upload-release-archive

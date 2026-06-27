@@ -1,0 +1,114 @@
+name: CI Build Project
+description: Build a downstream project against an rbfx SDK or source tree.
+
+inputs:
+  rbfx_mode:
+    description: Use a released SDK or build rbfx from source.
+    required: false
+    default: sdk
+  rbfx_source_strategy:
+    description: Source build strategy for downstream builds.
+    required: false
+    default: source
+  project_source_dir:
+    description: Downstream project root. Defaults to project_source_dir env var or github.workspace.
+    required: false
+    default: ''
+  android_gradle_dir:
+    description: Path to the downstream Android Gradle project, relative to project_source_dir.
+    required: false
+    default: ''
+  android_gradle_task:
+    description: Gradle task to execute inside android_gradle_dir.
+    required: false
+    default: assembleRelease
+  sdk_cached:
+    description: Whether the setup action downloaded a cached SDK.
+    required: false
+    default: 'false'
+  source_sdk_thirdparty_used:
+    description: Whether local SDK configure reused cached ThirdParty.
+    required: false
+    default: 'false'
+  save_build_cache:
+    description: Save ccache after build when the setup action did not hit an exact cache key.
+    required: false
+    default: 'true'
+  build_cache_hit:
+    description: build_cache_hit output from ci-prepare-platform.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Build local rbfx SDK Debug
+      if: inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'sdk'
+      shell: bash
+      run: |
+        "$ci_build_script" build --build-type dbg
+
+    - name: Build local rbfx SDK Release
+      if: inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'sdk'
+      shell: bash
+      run: |
+        "$ci_build_script" build --build-type rel
+
+    - name: Copy cached ThirdParty into local SDK
+      if: >-
+        inputs.rbfx_mode == 'source' &&
+        inputs.rbfx_source_strategy == 'sdk' &&
+        inputs.sdk_cached == 'true' &&
+        (env.ci_platform == 'android' || inputs.source_sdk_thirdparty_used == 'true')
+      shell: bash
+      run: |
+        "$ci_build_script" copy-cached-sdk '${{ github.workspace }}/cached-sdk' "$ci_sdk_dir"
+
+    - name: Install local rbfx SDK
+      if: inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'sdk'
+      shell: bash
+      run: |
+        "$ci_build_script" install --sdk-layout true
+
+    - name: Build downstream project against SDK
+      if: env.ci_platform != 'android' && (inputs.rbfx_mode == 'sdk' || (inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'sdk'))
+      shell: bash
+      env:
+        INPUT_PROJECT_SOURCE_DIR: ${{ inputs.project_source_dir }}
+      run: |
+        project_dir="${INPUT_PROJECT_SOURCE_DIR:-${project_source_dir:-${GITHUB_WORKSPACE}}}"
+        "$ci_build_script" build-project "$project_dir" sdk
+
+    - name: Build downstream project against source tree
+      if: env.ci_platform != 'android' && inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'source'
+      shell: bash
+      env:
+        INPUT_PROJECT_SOURCE_DIR: ${{ inputs.project_source_dir }}
+      run: |
+        project_dir="${INPUT_PROJECT_SOURCE_DIR:-${project_source_dir:-${GITHUB_WORKSPACE}}}"
+        "$ci_build_script" build-project "$project_dir" source
+
+    - name: Build downstream Android project against SDK
+      if: env.ci_platform == 'android' && (inputs.rbfx_mode == 'sdk' || (inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'sdk'))
+      shell: bash
+      env:
+        INPUT_PROJECT_SOURCE_DIR: ${{ inputs.project_source_dir }}
+      run: |
+        project_dir="${INPUT_PROJECT_SOURCE_DIR:-${project_source_dir:-${GITHUB_WORKSPACE}}}"
+        "$ci_build_script" build-android-project --gradle-task '${{ inputs.android_gradle_task }}' "$project_dir/${{ inputs.android_gradle_dir }}" sdk
+
+    - name: Build downstream Android project against source tree
+      if: env.ci_platform == 'android' && inputs.rbfx_mode == 'source' && inputs.rbfx_source_strategy == 'source'
+      shell: bash
+      env:
+        INPUT_PROJECT_SOURCE_DIR: ${{ inputs.project_source_dir }}
+      run: |
+        project_dir="${INPUT_PROJECT_SOURCE_DIR:-${project_source_dir:-${GITHUB_WORKSPACE}}}"
+        "$ci_build_script" build-android-project --gradle-task '${{ inputs.android_gradle_task }}' "$project_dir/${{ inputs.android_gradle_dir }}" source
+
+    - name: Save build cache
+      if: ${{ !cancelled() && inputs.save_build_cache == 'true' && inputs.build_cache_hit != 'true' }}
+      uses: actions/cache/save@v5
+      with:
+        path: ${{ env.CCACHE_DIR || format('{0}/.ccache', github.workspace) }}
+        key: ${{ env.ci_cache_id }}-${{ github.sha }}
