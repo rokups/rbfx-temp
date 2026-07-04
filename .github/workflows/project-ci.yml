@@ -85,6 +85,15 @@ on:
         required: false
         type: string
         default: 'false'
+      host_context:
+        description: >-
+          Install native host build artifacts for matching cross-compiled downstream builds.
+          Use true to enable it for every supported non-desktop platform, false to disable,
+          or a selector using the same syntax as platform_tags. When rbfx_mode is source,
+          the matching native desktop build must also be uploaded through deploy_artifacts.
+        required: false
+        type: string
+        default: 'false'
       exclude_pdbs:
         description: Exclude Windows PDB files from packaged downstream project artifacts.
         required: false
@@ -160,6 +169,7 @@ jobs:
           workflow_profile: downstream
           platform_tags: ${{ inputs.platform_tags }}
           deploy_artifacts: ${{ inputs.deploy_artifacts }}
+          host_context: ${{ inputs.host_context }}
           rbfx_mode: ${{ inputs.rbfx_mode }}
           rbfx_source_strategy: ${{ inputs.rbfx_source_strategy }}
           rbfx_source_sdk_cmake_args: ${{ inputs.rbfx_source_sdk_cmake_args }}
@@ -218,6 +228,16 @@ jobs:
           rbfx_source_strategy: ${{ inputs.rbfx_source_strategy }}
           rbfx_source_sdk_cmake_args: ${{ inputs.rbfx_source_sdk_cmake_args }}
           use_cached_thirdparty: ${{ inputs.use_cached_thirdparty }}
+
+      - name: Install host context
+        if: ${{ matrix.host_context_enabled }}
+        uses: ./rbfx-actions/.github/actions/ci-install-host-context
+        with:
+          enabled: ${{ matrix.host_context_enabled && 'true' || 'false' }}
+          rbfx_mode: ${{ inputs.rbfx_mode }}
+          rbfx_sdk_repository: ${{ inputs.rbfx_sdk_repository }}
+          host_platform_tag: ${{ matrix.host_platform_tag }}
+          host_artifact_name: ${{ inputs.artifact_name_prefix != '' && format('{0}-{1}', inputs.artifact_name_prefix, matrix.host_platform_tag) || matrix.host_platform_tag }}
 
       - name: Build downstream project
         uses: ./rbfx-actions/.github/actions/ci-build-project

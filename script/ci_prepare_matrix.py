@@ -111,6 +111,52 @@ def resolve_platform_selector(selector_name: str, requested_tokens: list[str]) -
     return platform_tags
 
 
+def resolve_host_platform_tag(platform_tag: str) -> str | None:
+    platform, _compiler, _arch, lib_type = platform_tag.split('-', 3)
+    if platform in {'android', 'web'}:
+        return f'linux-gcc-x64-{lib_type}'
+    if platform == 'ios':
+        # Prefer x64 host tools because they are usable on both Intel runners and
+        # Apple Silicon runners with Rosetta, while arm64-only binaries are not.
+        return f'macos-clang-x64-{lib_type}'
+    if platform == 'uwp':
+        return f'windows-msvc-x64-{lib_type}'
+    return None
+
+
+def resolve_host_context_tags(platform_tags: list[str]) -> list[str]:
+    host_context = require_env('INPUT_HOST_CONTEXT').strip()
+    normalized_value = host_context.lower()
+    supported_platform_tags = [tag for tag in platform_tags if resolve_host_platform_tag(tag) is not None]
+
+    if normalized_value == 'false' or host_context == '':
+        return []
+    if normalized_value == 'true':
+        return supported_platform_tags
+
+    selected_platform_tags = set(platform_tags)
+    requested_host_context_tags = [
+        tag for tag in resolve_platform_selector('host_context', parse_csv_value(host_context))
+        if tag in selected_platform_tags
+    ]
+    if not requested_host_context_tags:
+        raise SystemExit(
+            'host_context does not match any selected platform_tags. '
+            'Adjust host_context or platform_tags.'
+        )
+
+    unsupported_host_context_tags = [
+        tag for tag in requested_host_context_tags if resolve_host_platform_tag(tag) is None
+    ]
+    if unsupported_host_context_tags:
+        raise SystemExit(
+            'host_context only supports cross-compiled platform tags. '
+            'Unsupported selections: ' + ', '.join(unsupported_host_context_tags)
+        )
+
+    return requested_host_context_tags
+
+
 def resolve_deploy_artifact_tags(platform_tags: list[str]) -> list[str]:
     deploy_artifacts = require_env('INPUT_DEPLOY_ARTIFACTS').strip()
     normalized_value = deploy_artifacts.lower()
@@ -141,25 +187,42 @@ def resolve_runs_on(platform_tag: str) -> str:
     return 'ubuntu-latest'
 
 
-def build_platform_matrix(platform_tags: list[str]) -> dict[str, list[dict[str, str]]]:
+def build_platform_matrix(
+    platform_tags: list[str],
+    requested_platform_tags: list[str],
+    host_context_tags: list[str],
+) -> dict[str, list[dict[str, str | bool]]]:
+    requested_platform_tag_set = set(requested_platform_tags)
+    host_context_tag_set = set(host_context_tags)
+
     return {
         'include': [
             {
                 'ci_platform_tag': tag,
                 'runs_on': resolve_runs_on(tag),
+                'requested': tag in requested_platform_tag_set,
+                'host_context_enabled': tag in host_context_tag_set,
+                'host_platform_tag': resolve_host_platform_tag(tag) if tag in host_context_tag_set else '',
             }
             for tag in platform_tags
         ]
     }
 
 
-def write_output(platform_tags: list[str], deploy_artifact_tags: list[str]) -> None:
+def write_output(
+    requested_platform_tags: list[str],
+    platform_tags: list[str],
+    deploy_artifact_tags: list[str],
+    host_context_tags: list[str],
+) -> None:
     github_output = require_env('GITHUB_OUTPUT')
-    platform_matrix = build_platform_matrix(platform_tags)
+    platform_matrix = build_platform_matrix(platform_tags, requested_platform_tags, host_context_tags)
     with open(github_output, 'a', encoding='utf-8') as output:
+        print(f'requested_platform_tags={json.dumps(requested_platform_tags)}', file=output)
         print(f'platform_tags={json.dumps(platform_tags)}', file=output)
         print(f'platform_matrix={json.dumps(platform_matrix)}', file=output)
         print(f'deploy_artifact_tags={json.dumps(deploy_artifact_tags)}', file=output)
+        print(f'host_context_tags={json.dumps(host_context_tags)}', file=output)
 
 
 def main() -> None:
@@ -176,19 +239,21 @@ def main() -> None:
     parse_csv_env('INPUT_RBFX_SOURCE_SDK_CMAKE_ARGS')
     android_enabled = bool(require_env('INPUT_ANDROID_GRADLE_DIR').strip())
 
-    platform_tags = resolve_platform_selector('platform_tags', requested_platform_tags)
+    selected_platform_tags = resolve_platform_selector('platform_tags', requested_platform_tags)
 
     if profile == 'downstream' and not android_enabled:
-        platform_tags = [tag for tag in platform_tags if tag not in ANDROID_PLATFORM_TAGS]
+        selected_platform_tags = [tag for tag in selected_platform_tags if tag not in ANDROID_PLATFORM_TAGS]
 
-    if not platform_tags:
+    if not selected_platform_tags:
         raise SystemExit(
             'No platform tags remain after filtering. '
             'Adjust platform_tags exclusions or set android_gradle_dir.'
         )
 
+    host_context_tags = resolve_host_context_tags(selected_platform_tags)
+    platform_tags = selected_platform_tags
     deploy_artifact_tags = resolve_deploy_artifact_tags(platform_tags)
-    write_output(platform_tags, deploy_artifact_tags)
+    write_output(selected_platform_tags, platform_tags, deploy_artifact_tags, host_context_tags)
 
 
 if __name__ == '__main__':

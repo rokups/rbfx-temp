@@ -14,6 +14,13 @@ inputs:
     description: Artifact upload selector using the same syntax as platform_tags.
     required: false
     default: 'false'
+  host_context:
+    description: >-
+      Native host-context selector using the same syntax as platform_tags. Matching
+      cross-compiled builds receive a host_platform_tag in the output matrix.
+      Source-mode consumers still need deploy_artifacts to upload the matching desktop build.
+    required: false
+    default: 'false'
   rbfx_mode:
     description: Use a released SDK or build rbfx from source.
     required: false
@@ -32,6 +39,9 @@ inputs:
     default: ''
 
 outputs:
+  requested_platform_tags:
+    description: JSON array of platform tags selected directly by platform_tags.
+    value: ${{ steps.prepare.outputs.requested_platform_tags }}
   platform_tags:
     description: JSON array of selected platform tags.
     value: ${{ steps.prepare.outputs.platform_tags }}
@@ -41,6 +51,9 @@ outputs:
   deploy_artifact_tags:
     description: JSON array of selected platform tags whose artifacts should be uploaded.
     value: ${{ steps.prepare.outputs.deploy_artifact_tags }}
+  host_context_tags:
+    description: JSON array of selected platform tags that should install host context.
+    value: ${{ steps.prepare.outputs.host_context_tags }}
 
 runs:
   using: composite
@@ -52,6 +65,7 @@ runs:
         INPUT_WORKFLOW_PROFILE: ${{ inputs.workflow_profile }}
         INPUT_PLATFORM_TAGS: ${{ inputs.platform_tags }}
         INPUT_DEPLOY_ARTIFACTS: ${{ inputs.deploy_artifacts }}
+        INPUT_HOST_CONTEXT: ${{ inputs.host_context }}
         INPUT_RBFX_MODE: ${{ inputs.rbfx_mode }}
         INPUT_RBFX_SOURCE_STRATEGY: ${{ inputs.rbfx_source_strategy }}
         INPUT_RBFX_SOURCE_SDK_CMAKE_ARGS: ${{ inputs.rbfx_source_sdk_cmake_args }}

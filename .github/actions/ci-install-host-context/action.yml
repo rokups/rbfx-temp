@@ -1,0 +1,151 @@
+name: CI Install Host Context
+description: Install native host context for cross-compiled downstream builds.
+
+inputs:
+  enabled:
+    description: Whether to install host context for this job.
+    required: false
+    default: 'false'
+  rbfx_mode:
+    description: Use a released SDK or same-run project artifacts as host context.
+    required: false
+    default: sdk
+  rbfx_sdk_repository:
+    description: Repository that publishes rebelfork-sdk-* latest release artifacts.
+    required: false
+    default: rbfx/rbfx
+  host_platform_tag:
+    description: Native host rbfx CI platform tag to install.
+    required: false
+    default: ''
+  host_artifact_name:
+    description: Current-run artifact name to download when rbfx_mode is source.
+    required: false
+    default: ''
+  install_dir:
+    description: Directory where the host context is extracted.
+    required: false
+    default: ''
+  artifact_wait_seconds:
+    description: Maximum time to wait for a same-run host artifact.
+    required: false
+    default: '3600'
+
+outputs:
+  host_context_dir:
+    description: Extracted host context root directory.
+    value: ${{ steps.export.outputs.host_context_dir }}
+  cmake_prefix_path:
+    description: Prefix path contributed by the host context.
+    value: ${{ steps.export.outputs.cmake_prefix_path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve host context paths
+      id: paths
+      if: inputs.enabled == 'true'
+      shell: bash
+      env:
+        INPUT_RBFX_MODE: ${{ inputs.rbfx_mode }}
+        INPUT_HOST_PLATFORM_TAG: ${{ inputs.host_platform_tag }}
+        INPUT_INSTALL_DIR: ${{ inputs.install_dir }}
+      run: |
+        rbfx_mode="${INPUT_RBFX_MODE:-sdk}"
+        host_platform_tag="${INPUT_HOST_PLATFORM_TAG:-}"
+        if [[ -z "$host_platform_tag" ]]; then
+          echo 'Error: host_platform_tag is required when host context is enabled.'
+          exit 1
+        fi
+
+        host_context_dir="${INPUT_INSTALL_DIR:-${RUNNER_TEMP}/host-context/${host_platform_tag}}"
+        cmake_prefix_path="$host_context_dir"
+        if [[ "$rbfx_mode" == 'sdk' && ( "$host_platform_tag" == windows-* || "$host_platform_tag" == uwp-* ) ]]; then
+          cmake_prefix_path="$host_context_dir/share"
+        fi
+
+        rm -rf "$host_context_dir"
+        mkdir -p "$(dirname "$host_context_dir")"
+
+        printf 'host_context_dir=%s\n' "$host_context_dir" >> "$GITHUB_OUTPUT"
+        printf 'cmake_prefix_path=%s\n' "$cmake_prefix_path" >> "$GITHUB_OUTPUT"
+
+    - name: Download host rbfx SDK
+      if: inputs.enabled == 'true' && inputs.rbfx_mode == 'sdk'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: >-
+        "$ci_build_script" download-release --
+        "https://github.com/${{ inputs.rbfx_sdk_repository }}/releases/download/latest/rebelfork-sdk-${{ inputs.host_platform_tag }}-latest.7z"
+        "${{ steps.paths.outputs.host_context_dir }}"
+
+    - name: Wait for host project artifact
+      if: inputs.enabled == 'true' && inputs.rbfx_mode == 'source'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        INPUT_HOST_ARTIFACT_NAME: ${{ inputs.host_artifact_name }}
+        INPUT_ARTIFACT_WAIT_SECONDS: ${{ inputs.artifact_wait_seconds }}
+      run: |
+        artifact_name="${INPUT_HOST_ARTIFACT_NAME:-}"
+        wait_seconds="${INPUT_ARTIFACT_WAIT_SECONDS:-3600}"
+
+        if [[ -z "$artifact_name" ]]; then
+          echo 'Error: host_artifact_name is required when rbfx_mode is source.'
+          exit 1
+        fi
+
+        deadline=$((SECONDS + wait_seconds))
+        while [[ $SECONDS -lt $deadline ]]; do
+          artifact_id="$(
+            gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" \
+              --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id" 2>/dev/null | head -n 1
+          )"
+          if [[ -n "$artifact_id" ]]; then
+            echo "Found host artifact: $artifact_name"
+            exit 0
+          fi
+
+          echo "Waiting for host artifact: $artifact_name"
+          sleep 15
+        done
+
+        echo "Error: timed out waiting for host artifact: $artifact_name"
+        echo 'Ensure deploy_artifacts uploads the matching native desktop artifact for this workflow run.'
+        exit 1
+
+    - name: Download host project artifact
+      if: inputs.enabled == 'true' && inputs.rbfx_mode == 'source'
+      uses: actions/download-artifact@v5
+      with:
+        name: ${{ inputs.host_artifact_name }}
+        path: ${{ steps.paths.outputs.host_context_dir }}
+
+    - name: Export host context
+      id: export
+      if: inputs.enabled == 'true'
+      shell: bash
+      env:
+        HOST_CONTEXT_DIR: ${{ steps.paths.outputs.host_context_dir }}
+        HOST_CONTEXT_PREFIX_PATH: ${{ steps.paths.outputs.cmake_prefix_path }}
+      run: |
+        if [[ ! -d "$HOST_CONTEXT_PREFIX_PATH" ]]; then
+          echo "Error: host context prefix path does not exist: $HOST_CONTEXT_PREFIX_PATH"
+          exit 1
+        fi
+
+        additional_prefix_path="$HOST_CONTEXT_PREFIX_PATH"
+        if [[ -n "${CI_ADDITIONAL_CMAKE_PREFIX_PATH:-}" ]]; then
+          additional_prefix_path="${HOST_CONTEXT_PREFIX_PATH};${CI_ADDITIONAL_CMAKE_PREFIX_PATH}"
+        fi
+
+        exported_cmake_prefix_path="$HOST_CONTEXT_PREFIX_PATH"
+        if [[ -n "${CMAKE_PREFIX_PATH:-}" ]]; then
+          exported_cmake_prefix_path="${HOST_CONTEXT_PREFIX_PATH};${CMAKE_PREFIX_PATH}"
+        fi
+
+        printf 'CI_ADDITIONAL_CMAKE_PREFIX_PATH=%s\n' "$additional_prefix_path" >> "$GITHUB_ENV"
+        printf 'CMAKE_PREFIX_PATH=%s\n' "$exported_cmake_prefix_path" >> "$GITHUB_ENV"
+        printf 'host_context_dir=%s\n' "$HOST_CONTEXT_DIR" >> "$GITHUB_OUTPUT"
+        printf 'cmake_prefix_path=%s\n' "$HOST_CONTEXT_PREFIX_PATH" >> "$GITHUB_OUTPUT"

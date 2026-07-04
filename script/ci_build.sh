@@ -126,6 +126,19 @@ trim-whitespace() {
     printf '%s' "$value"
 }
 
+prepend-cmake-path-list() {
+    local prefix=$1
+    local current=$2
+
+    if [[ -z "$prefix" ]]; then
+        printf '%s' "$current"
+    elif [[ -z "$current" ]]; then
+        printf '%s' "$prefix"
+    else
+        printf '%s;%s' "$prefix" "$current"
+    fi
+}
+
 is-truthy() {
     case "$1" in
         1|true|TRUE|True|yes|YES|Yes|on|ON|On)
@@ -330,6 +343,7 @@ copy-runtime-libraries-for-file() {
 prepare-project-search-paths() {
     local mode=$1
     local cached_sdk=''
+    local additional_project_prefix="${CI_ADDITIONAL_CMAKE_PREFIX_PATH:-}"
 
     project_cmake_prefix_variable='CMAKE_PREFIX_PATH'
     project_cmake_root_value=''
@@ -365,6 +379,7 @@ prepare-project-search-paths() {
         fi
     fi
 
+    project_cmake_prefix_value=$(prepend-cmake-path-list "$additional_project_prefix" "$project_cmake_prefix_value")
 }
 
 prepare-project-cmake-args() {
@@ -1183,15 +1198,12 @@ function action-stage-project-artifacts() {
     rm -rf "$staging_dir"
     mkdir -p "$staging_dir"
 
-    if [[ -d "$build_dir/bin" ]]; then
-        cp -a "$build_dir/bin" "$staging_dir/bin"
-        found_assets=1
-    fi
-
-    if [[ -d "$build_dir/lib" ]]; then
-        cp -a "$build_dir/lib" "$staging_dir/lib"
-        found_assets=1
-    fi
+    for output_dir in bin lib share include; do
+        if [[ -d "$build_dir/$output_dir" ]]; then
+            cp -a "$build_dir/$output_dir" "$staging_dir/$output_dir"
+            found_assets=1
+        fi
+    done
 
     if [[ -n "$android_output_root" ]]; then
         while IFS= read -r android_output; do
