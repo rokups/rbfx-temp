@@ -23,43 +23,36 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# In order to update compiled source file lists in "ssl" and "crypto" subdirs, configure OpenSSL and look at object
-# files to be compiled at the end of generated Makefile in root OpenSSL source dir.
-# Example OpenSSL configuration:
-#   ./Configure no-asm linux-x86_64
-#   ./config
+# This directory holds OpenSSL 4.1.0. It contains the C sources and headers of the upstream crypto, ssl, providers
+# and include directories, and the files that the upstream build generates.
+# To update it, configure and build OpenSSL in a separate directory with these options:
+#   perl Configure linux-generic64 no-asm no-shared no-module no-dso no-async no-tests no-docs no-apps no-engine
+#   make libcrypto.a libssl.a
+# Copy the generated *.c, *.h and *.inc files into this directory, and rename include/openssl/configuration.h to
+# configuration.h.in. In that file, change the BN_LLONG, SIXTY_FOUR_BIT_LONG, SIXTY_FOUR_BIT and THIRTY_TWO_BIT
+# lines to #cmakedefine. Make crypto/buildinf.h free of local build data.
+# The source lists in crypto/CMakeLists.txt and ssl/CMakeLists.txt are the objects of libcrypto.a and libssl.a.
 
-project(openssl)
-cmake_minimum_required(VERSION 3.0...3.25)
+cmake_minimum_required(VERSION 3.5...3.25)
+project(openssl C)
 
 include(CheckTypeSize)
 check_type_size("long" LONG_INT)
 check_type_size("long long" LONG_LONG_INT)
-check_type_size("int" INT)
 if("${LONG_INT}" EQUAL 8)
-    set(SIXTY_FOUR_BIT_LONG ON )
-elseif("${LONG_LONG_INT}" EQUAL 8)
+    set(SIXTY_FOUR_BIT_LONG ON)
+elseif("${LONG_LONG_INT}" EQUAL 8 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(SIXTY_FOUR_BIT ON)
 else()
     set(THIRTY_TWO_BIT ON)
+    set(BN_LLONG ON)
 endif()
-if (MSVC OR (WIN32 AND MINGW AND NOT CYGWIN))
-    set(OPENSSL_EXPORT_VAR_AS_FUNCTION 1)
-endif()
-configure_file(include/openssl/opensslconf.h.in ${PROJECT_BINARY_DIR}/include/openssl/opensslconf.h)
-configure_file(include/crypto/bn_conf.h.in ${PROJECT_BINARY_DIR}/include/openssl/crypto/bn_conf.h)
-configure_file(include/crypto/dso_conf.h.in ${PROJECT_BINARY_DIR}/include/openssl/crypto/dso_conf.h)
-file(COPY buildinf.h DESTINATION ${PROJECT_BINARY_DIR}/include/openssl/)
-
-if (MINGW)
-    set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--export-all" )
-endif()
+configure_file(include/openssl/configuration.h.in ${PROJECT_BINARY_DIR}/include/openssl/configuration.h)
 
 add_subdirectory(crypto)
 add_subdirectory(ssl)
-file(COPY e_os.h DESTINATION ${PROJECT_BINARY_DIR}/include/)
 
-install (DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ FILES_MATCHING PATTERN *.h)
+install (DIRECTORY include/openssl DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ FILES_MATCHING PATTERN *.h)
 install (DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ FILES_MATCHING PATTERN *.h)
 
 install_third_party_libs(ssl crypto)
