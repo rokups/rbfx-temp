@@ -115,7 +115,13 @@ target_compile_definitions(crypto PRIVATE STATIC_LEGACY OPENSSLDIR="/usr/local/s
 if (WIN32)
     # The same defines as the upstream Windows configurations.
     target_compile_definitions(crypto PRIVATE WIN32_LEAN_AND_MEAN=1 UNICODE _UNICODE _CRT_SECURE_NO_DEPRECATE _WINSOCK_DEPRECATED_NO_WARNINGS=1)
-    target_link_libraries(crypto PUBLIC ws2_32 crypt32 advapi32 user32 bcrypt)
+    if (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+        # As the upstream UWP and OneCore configurations: no GUI calls, so MessageBox and user32 are not used.
+        target_compile_definitions(crypto PRIVATE OPENSSL_SYS_WIN_CORE)
+        target_link_libraries(crypto PUBLIC ws2_32 crypt32 advapi32 bcrypt)
+    else ()
+        target_link_libraries(crypto PUBLIC ws2_32 crypt32 advapi32 user32 bcrypt)
+    endif ()
 else ()
     find_package(Threads REQUIRED)
     target_link_libraries(crypto PUBLIC Threads::Threads)
